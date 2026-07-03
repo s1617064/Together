@@ -25,21 +25,17 @@ export function getFirebaseConfigStatus() {
     (field) => !String(project[field] || "").trim()
   );
 
-  const membersMissingEmails = firebaseRuntimeConfig.members
-    .filter((member) => !String(member.email || "").trim())
-    .map((member) => member.name);
-
   const enabled = Boolean(firebaseRuntimeConfig.enabled);
   const ready =
     enabled &&
     missingProjectFields.length === 0 &&
-    membersMissingEmails.length === 0;
+    String(firebaseRuntimeConfig.sharedBookId || "").trim().length > 0;
 
   return {
     enabled,
     ready,
     missingProjectFields,
-    membersMissingEmails,
+    membersMissingEmails: [],
   };
 }
 
@@ -72,14 +68,55 @@ async function createFirebaseContext() {
   const auth = authModule.getAuth(app);
   const db = firestoreModule.getFirestore(app);
   const bookId = firebaseRuntimeConfig.sharedBookId;
+  const memberTemplates = firebaseRuntimeConfig.members;
 
   function getMemberForEmail(email) {
     const normalizedEmail = String(email || "").trim().toLowerCase();
     return (
-      firebaseRuntimeConfig.members.find(
-        (member) => member.email.trim().toLowerCase() === normalizedEmail
+      memberTemplates.find(
+        (member) =>
+          String(member.email || "").trim().toLowerCase() === normalizedEmail
       ) ?? null
     );
+  }
+
+  function getMemberTemplateByKey(key) {
+    return memberTemplates.find((member) => member.key === key) ?? null;
+  }
+
+  function normalizeMemberRecord(data) {
+    const key = String(data.memberKey || "");
+    const template = getMemberTemplateByKey(key);
+    return {
+      key: key || template?.key || "",
+      name: String(data.displayName || template?.name || "成员"),
+      accentClass: String(data.accentClass || template?.accentClass || ""),
+    };
+  }
+
+  async function getMemberForUser(user) {
+    const memberRef = firestoreModule.doc(
+      db,
+      "books",
+      bookId,
+      "members",
+      user.uid
+    );
+    const memberSnapshot = await firestoreModule.getDoc(memberRef);
+
+    if (memberSnapshot.exists()) {
+      return {
+        member: normalizeMemberRecord(memberSnapshot.data()),
+        needsMembershipSync: false,
+      };
+    }
+
+    // Legacy fallback: support older setups that still used email-based matching,
+    // then immediately write the resolved membership into Firestore.
+    return {
+      member: getMemberForEmail(user.email),
+      needsMembershipSync: true,
+    };
   }
 
   async function ensureBookMembership(user, member) {
@@ -154,19 +191,22 @@ async function createFirebaseContext() {
         }
 
         try {
-          const member = getMemberForEmail(user.email);
+          const { member, needsMembershipSync } = await getMemberForUser(user);
           if (!member) {
             await authModule.signOut(auth);
             callback({
               user: null,
               member: null,
-              error: "这个账号不在共享账本白名单里，请先在配置里登记邮箱。",
+              error: "这个账号还没有加入共享账本，请先用已加入的设备完成成员绑定。",
             });
             return;
           }
 
-          await ensureBookMembership(user, member);
           callback({ user, member, error: "" });
+
+          if (needsMembershipSync) {
+            await ensureBookMembership(user, member);
+          }
         } catch (error) {
           await authModule.signOut(auth).catch(() => {});
           callback({

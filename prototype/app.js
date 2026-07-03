@@ -8,6 +8,8 @@ import {
 const EXPENSE_STORAGE_KEY = "together-accounting-demo-v3";
 const SESSION_STORAGE_KEY = "together-accounting-session-v2";
 const APP_MODE_STORAGE_KEY = "together-accounting-app-mode-v1";
+const CLOUD_MEMBER_CACHE_KEY = "together-accounting-cloud-member-v1";
+const CLOUD_EXPENSE_CACHE_KEY = "together-accounting-cloud-expenses-v1";
 
 const members = getConfiguredMembers();
 const categories = [
@@ -77,11 +79,12 @@ const state = {
   currentProfile: null,
   selectedCategory: categories[0].id,
   editingExpenseId: null,
-  expenses: loadLocalExpenses(),
+  expenses: [],
   cloudReady: isFirebaseConfigured(),
   cloudService: null,
   cloudAuthUser: null,
   cloudUnsubscribe: null,
+  cloudAuthResolved: false,
   ledgerMonth: getCurrentMonthKey(new Date().toISOString()),
   ledgerMemberFilter: "all",
   ledgerCategoryFilter: "all",
@@ -139,6 +142,13 @@ const tabPanels = document.querySelectorAll("[data-tab-panel]");
 if (state.mode === "demo") {
   state.currentUser = loadSession();
   state.currentProfile = getMemberByKey(state.currentUser);
+  state.expenses = loadLocalExpenses();
+  state.cloudAuthResolved = true;
+} else {
+  const cachedCloudMember = loadCloudMemberCache();
+  state.currentUser = cachedCloudMember?.key ?? null;
+  state.currentProfile = cachedCloudMember;
+  state.expenses = loadCloudExpensesCache();
 }
 
 void bootstrap();
@@ -287,6 +297,11 @@ function bindEvents() {
       return;
     }
 
+    if (state.mode === "cloud" && !state.cloudAuthUser) {
+      showCloudAuthFeedback("正在连接共享账本，请稍等一下。", false);
+      return;
+    }
+
     syncCategoryValue();
     const formData = new FormData(form);
     const amount = Number(formData.get("amount"));
@@ -352,6 +367,8 @@ function bindEvents() {
 
 function attachCloudAuthWatcher() {
   state.cloudService.watchAuth(({ user, member, error }) => {
+    state.cloudAuthResolved = true;
+
     if (error) {
       if (state.cloudUnsubscribe) {
         state.cloudUnsubscribe();
@@ -361,7 +378,7 @@ function attachCloudAuthWatcher() {
       state.currentUser = null;
       state.currentProfile = null;
       state.cloudAuthUser = null;
-      state.expenses = [];
+      clearCloudMemberCache();
       renderCurrentUser();
       renderApp();
       syncLoginState();
@@ -379,7 +396,7 @@ function attachCloudAuthWatcher() {
         state.currentUser = null;
         state.currentProfile = null;
         state.cloudAuthUser = null;
-        state.expenses = [];
+        clearCloudMemberCache();
         renderCurrentUser();
         renderApp();
         syncLoginState();
@@ -392,6 +409,7 @@ function attachCloudAuthWatcher() {
     state.currentProfile = member;
     state.cloudAuthUser = user;
     persistAppMode();
+    persistCloudMemberCache(member);
     showCloudAuthFeedback("云同步已连接。", false);
     renderCurrentUser();
     subscribeCloudExpenses();
@@ -408,6 +426,7 @@ function subscribeCloudExpenses() {
 
   state.cloudUnsubscribe = state.cloudService.watchExpenses((expenses) => {
     state.expenses = expenses.sort(sortBySpentAtDesc);
+    persistCloudExpensesCache();
     renderApp();
   });
 }
@@ -417,6 +436,7 @@ function startDemoMode(memberKey) {
   state.currentUser = memberKey;
   state.currentProfile = getMemberByKey(memberKey);
   state.cloudAuthUser = null;
+  state.cloudAuthResolved = true;
   state.expenses = loadLocalExpenses();
   exitEditMode();
   persistSession();
@@ -743,7 +763,7 @@ function renderLedgerHelperText(filteredCount) {
 }
 
 function renderExpenseActions(item) {
-  if (!isOwnedByCurrentUser(item)) {
+  if (!canMutateCloudData() || !isOwnedByCurrentUser(item)) {
     return "";
   }
 
@@ -829,6 +849,11 @@ async function deleteExpense(expenseId) {
   const expense = getExpenseById(expenseId);
   if (!expense || !isOwnedByCurrentUser(expense)) return;
 
+  if (state.mode === "cloud" && !state.cloudAuthUser) {
+    showCloudAuthFeedback("正在连接共享账本，请稍等一下。", false);
+    return;
+  }
+
   const confirmed = window.confirm("确定删除这笔记录吗？");
   if (!confirmed) return;
 
@@ -904,6 +929,66 @@ function loadLocalExpenses() {
 function persistLocalExpenses() {
   if (state.mode !== "demo") return;
   localStorage.setItem(EXPENSE_STORAGE_KEY, JSON.stringify(state.expenses));
+}
+
+function loadCloudMemberCache() {
+  try {
+    const saved = localStorage.getItem(CLOUD_MEMBER_CACHE_KEY);
+    if (!saved) return null;
+
+    const parsed = JSON.parse(saved);
+    if (!parsed || !parsed.key) return null;
+
+    return {
+      key: String(parsed.key),
+      name: String(parsed.name || getMemberName(parsed.key)),
+      accentClass: String(
+        parsed.accentClass || getMemberAccentClass(parsed.key)
+      ),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function persistCloudMemberCache(member) {
+  if (!member?.key) return;
+
+  localStorage.setItem(
+    CLOUD_MEMBER_CACHE_KEY,
+    JSON.stringify({
+      key: member.key,
+      name: member.name,
+      accentClass: member.accentClass,
+    })
+  );
+}
+
+function clearCloudMemberCache() {
+  localStorage.removeItem(CLOUD_MEMBER_CACHE_KEY);
+}
+
+function loadCloudExpensesCache() {
+  try {
+    const saved = localStorage.getItem(CLOUD_EXPENSE_CACHE_KEY);
+    if (!saved) {
+      return [];
+    }
+
+    const parsed = JSON.parse(saved);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.map(normalizeLocalExpense).sort(sortBySpentAtDesc);
+  } catch {
+    return [];
+  }
+}
+
+function persistCloudExpensesCache() {
+  if (state.mode !== "cloud") return;
+  localStorage.setItem(CLOUD_EXPENSE_CACHE_KEY, JSON.stringify(state.expenses));
 }
 
 function loadSession() {
@@ -1202,6 +1287,10 @@ function isOwnedByCurrentUser(item) {
   }
 
   return Boolean(state.currentUser) && item.ownerUid === state.currentUser;
+}
+
+function canMutateCloudData() {
+  return state.mode !== "cloud" || Boolean(state.cloudAuthUser);
 }
 
 function formatCurrency(value) {
