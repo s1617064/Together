@@ -1,0 +1,30 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isBookMember(bookId) {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/books/$(bookId)/members/$(request.auth.uid));
+    }
+
+    match /books/{bookId} {
+      allow create: if signedIn();
+      allow read, update: if isBookMember(bookId);
+      allow delete: if false;
+
+      match /members/{userId} {
+        allow read: if isBookMember(bookId);
+        allow create, update: if signedIn() && request.auth.uid == userId;
+        allow delete: if false;
+      }
+
+      match /expenses/{expenseId} {
+        allow read, create, update, delete: if isBookMember(bookId);
+      }
+    }
+  }
+}
