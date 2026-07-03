@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#f4f7fb" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Together" />
+    <title>一起记账</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icon.svg" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="login-screen" id="login-screen">
+      <div class="login-card">
+        <p class="brand-mark">Together</p>
+        <h1 id="login-title">登录共享账本</h1>
+        <p class="login-copy">
+          用你们各自的邮箱登录后，就会进入同一本共享账本并实时同步。
+        </p>
+        <section class="cloud-auth-card" id="cloud-auth-card">
+          <div class="cloud-auth-head">
+            <p class="panel-kicker">正式版</p>
+            <h2>一起记账</h2>
+            <p class="cloud-auth-copy" id="cloud-auth-copy">
+              还没有启用 Firebase。把配置填好后，这里就能直接登录。
+            </p>
+          </div>
+          <form class="cloud-auth-form hidden" id="cloud-auth-form">
+            <label>
+              <span>邮箱</span>
+              <input type="email" name="email" placeholder="例如：dou@example.com" />
+            </label>
+            <label>
+              <span>密码</span>
+              <input type="password" name="password" placeholder="至少 6 位" />
+            </label>
+            <div class="cloud-auth-actions">
+              <button class="primary-button" type="submit" data-auth-action="sign-in">登录</button>
+              <button class="secondary-button inline" type="submit" data-auth-action="sign-up">注册</button>
+            </div>
+          </form>
+          <p class="cloud-auth-feedback hidden" id="cloud-auth-feedback"></p>
+        </section>
+      </div>
+    </div>
+
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="brand-mark">Together</p>
+          <h1>一起记账</h1>
+        </div>
+        <div class="topbar-ledger-identity">
+          <div class="session-pill">
+            <span class="identity-inline-label">当前记账人：</span>
+            <span class="current-user-label" id="current-user-label">未登录</span>
+            <button class="text-button" id="switch-user" type="button">切换</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="main-content">
+        <section class="tab-panel active" data-tab-panel="timeline">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="panel-kicker">首页</p>
+                <h2>记账时间轴</h2>
+              </div>
+              <div class="timeline-actions">
+                <button class="ghost-button subtle" type="button" id="timeline-refresh-button">刷新</button>
+              </div>
+            </div>
+            <p class="timeline-feedback hidden" id="timeline-feedback"></p>
+            <div class="timeline" id="timeline"></div>
+          </section>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="add">
+          <section class="panel form-panel">
+            <div class="panel-head">
+              <div>
+                <p class="panel-kicker" id="form-kicker">新增记录</p>
+                <h2 id="form-title">记一笔</h2>
+              </div>
+            </div>
+
+            <form id="expense-form" class="expense-form">
+              <label class="full-width amount-field featured-field">
+                <span>这次花了多少</span>
+                <input type="number" step="0.01" min="0" name="amount" placeholder="0.00" required />
+              </label>
+
+              <div class="full-width">
+                <div class="field-label">常用类目</div>
+                <div class="category-grid" id="category-grid"></div>
+                <input type="hidden" name="category" id="category-input" required />
+                <label class="custom-category hidden" id="custom-category-wrap">
+                  <span>手动输入类目</span>
+                  <input type="text" id="custom-category-input" placeholder="例如：礼物、宠物、乐器配件" />
+                </label>
+              </div>
+
+              <label>
+                <span>消费时间</span>
+                <input type="datetime-local" name="spentAt" required />
+              </label>
+
+              <label class="full-width">
+                <span>备注</span>
+                <textarea name="note" rows="2" placeholder="例如：晚饭、超市采购、打车回家"></textarea>
+              </label>
+
+              <div class="form-actions full-width">
+                <button type="submit" class="primary-button" id="submit-button">保存这笔记录</button>
+                <button type="button" class="secondary-button hidden" id="cancel-edit-button">取消编辑</button>
+              </div>
+            </form>
+          </section>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="ledger">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="panel-kicker">账本</p>
+                <h2 id="ledger-summary-title">本月汇总</h2>
+              </div>
+            </div>
+
+            <div class="summary-grid" id="summary-grid"></div>
+
+            <div class="ledger-toolbar">
+              <label class="ledger-select">
+                <span>查看月份</span>
+                <select id="ledger-month-select" aria-label="选择账本月份"></select>
+              </label>
+              <div class="ledger-toolbar-actions">
+                <label class="ledger-search">
+                  <span>搜索账单</span>
+                  <input
+                    type="search"
+                    id="ledger-search-input"
+                    placeholder="搜类目、备注、金额、记账人"
+                    aria-label="搜索账本记录"
+                  />
+                </label>
+                <button class="secondary-button export-button" type="button" id="ledger-export-button">
+                  导出当前结果
+                </button>
+              </div>
+            </div>
+
+            <div class="ledger-filters">
+              <div class="filter-group">
+                <p class="field-label">按记账人看</p>
+                <div class="filter-chips" id="ledger-member-filters"></div>
+              </div>
+              <div class="filter-group">
+                <p class="field-label">按类目看</p>
+                <div class="filter-chips" id="ledger-category-filters"></div>
+              </div>
+            </div>
+
+            <div class="panel-subhead">
+              <p class="panel-kicker" id="ledger-breakdown-kicker">分类统计</p>
+            </div>
+            <div class="breakdown-chart-card" id="ledger-breakdown-chart"></div>
+
+            <div class="panel-subhead">
+              <p class="panel-kicker" id="ledger-list-kicker">全部记录</p>
+            </div>
+            <p class="ledger-helper-text hidden" id="ledger-helper-text"></p>
+            <div class="ledger-list" id="ledger-list"></div>
+          </section>
+        </section>
+      </main>
+
+      <nav class="tabbar">
+        <button class="tabbar-button active" data-tab="timeline">首页</button>
+        <button class="tabbar-button" data-tab="add">记一笔</button>
+        <button class="tabbar-button" data-tab="ledger">账本</button>
+      </nav>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
