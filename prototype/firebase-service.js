@@ -94,6 +94,19 @@ async function createFirebaseContext() {
     };
   }
 
+  function isOfflineError(error) {
+    const code = String(error?.code || "").toLowerCase();
+    const message = String(error?.message || "").toLowerCase();
+
+    return (
+      code.includes("unavailable") ||
+      code.includes("offline") ||
+      message.includes("client is offline") ||
+      message.includes("offline") ||
+      message.includes("network")
+    );
+  }
+
   async function getMemberForUser(user) {
     const memberRef = firestoreModule.doc(
       db,
@@ -208,11 +221,21 @@ async function createFirebaseContext() {
             await ensureBookMembership(user, member);
           }
         } catch (error) {
+          if (isOfflineError(error)) {
+            callback({
+              user,
+              member: null,
+              error: "网络有点慢，先为你打开上次内容，连上后会自动更新。",
+              offline: true,
+            });
+            return;
+          }
+
           await authModule.signOut(auth).catch(() => {});
           callback({
             user: null,
             member: null,
-            error: `同步账本失败：${error.message || "请检查 Firestore 规则。"}`,
+            error: "暂时没连上共享账本，请稍后再试。",
           });
         }
       });

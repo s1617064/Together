@@ -222,10 +222,10 @@ function bindEvents() {
     try {
       if (action === "sign-up") {
         await state.cloudService.signUp(email, password);
-        showCloudAuthFeedback("注册成功，正在进入共享账本。", false);
+        showCloudAuthFeedback("注册成功，马上进入你们的账本。", false);
       } else {
         await state.cloudService.signIn(email, password);
-        showCloudAuthFeedback("登录成功，正在同步账本。", false);
+        showCloudAuthFeedback("欢迎回来，正在更新最近记录。", false);
       }
     } catch (error) {
       showCloudAuthFeedback(getReadableAuthError(error), true);
@@ -298,7 +298,7 @@ function bindEvents() {
     }
 
     if (state.mode === "cloud" && !state.cloudAuthUser) {
-      showCloudAuthFeedback("正在连接共享账本，请稍等一下。", false);
+      showCloudAuthFeedback("正在打开你们的账本，请稍候。", false);
       return;
     }
 
@@ -366,10 +366,26 @@ function bindEvents() {
 }
 
 function attachCloudAuthWatcher() {
-  state.cloudService.watchAuth(({ user, member, error }) => {
+  state.cloudService.watchAuth(({ user, member, error, offline }) => {
     state.cloudAuthResolved = true;
 
     if (error) {
+      if (offline && state.currentProfile) {
+        if (state.cloudUnsubscribe) {
+          state.cloudUnsubscribe();
+          state.cloudUnsubscribe = null;
+        }
+
+        state.mode = "cloud";
+        state.currentUser = state.currentProfile.key;
+        state.cloudAuthUser = null;
+        renderCurrentUser();
+        renderApp();
+        syncLoginState();
+        showCloudAuthFeedback(error, false);
+        return;
+      }
+
       if (state.cloudUnsubscribe) {
         state.cloudUnsubscribe();
         state.cloudUnsubscribe = null;
@@ -410,7 +426,7 @@ function attachCloudAuthWatcher() {
     state.cloudAuthUser = user;
     persistAppMode();
     persistCloudMemberCache(member);
-    showCloudAuthFeedback("云同步已连接。", false);
+    showCloudAuthFeedback("已连上共享账本。", false);
     renderCurrentUser();
     subscribeCloudExpenses();
     syncLoginState();
@@ -850,7 +866,7 @@ async function deleteExpense(expenseId) {
   if (!expense || !isOwnedByCurrentUser(expense)) return;
 
   if (state.mode === "cloud" && !state.cloudAuthUser) {
-    showCloudAuthFeedback("正在连接共享账本，请稍等一下。", false);
+    showCloudAuthFeedback("正在打开你们的账本，请稍候。", false);
     return;
   }
 
