@@ -50,20 +50,17 @@
 
 - 已发布规则
 
-### 4. 登录邮箱和本地配置一致
+### 4. 登录账号和成员身份一致
 
 本地文件：
 
 - [prototype/firebase-config.js](/Users/luna/Documents/Together/prototype/firebase-config.js)
 
-当前配置的是：
-
-- 抖：`wushujiu@qq.com`
-- 宝：`mengxian1227@163.com`
-
 核对结果应该是：
 
-- 实际注册/登录时，用的就是这两个邮箱
+- 两个人都能登录成功
+- 登录后能自动识别成 `抖` 和 `宝`
+- 成员身份来自 `books/{sharedBookId}/members/{auth.uid}`
 
 ## 最快验证方法
 

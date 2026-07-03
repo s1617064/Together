@@ -65,16 +65,15 @@
 
 - `enabled: true`
 
-### 5. 配置两个人的邮箱
+### 5. 保留公开配置，成员身份走云端
 
-在 [prototype/firebase-config.js](/Users/luna/Documents/Together/prototype/firebase-config.js) 里，把 `members` 中的邮箱改成你们真实要用的邮箱。
+现在这套骨架不再要求你把真实邮箱写进前端配置文件。
 
-例如：
+也就是说：
 
-- 抖：`dou@example.com`
-- 宝：`bao@example.com`
-
-当前骨架会用邮箱来判断这个账号应该映射成 `抖` 还是 `宝`。
+- `prototype/firebase-config.js` 里只保留项目配置
+- `members` 里只放公开的昵称和颜色标识
+- 真正的成员身份会从 Firestore 的 `members/{auth.uid}` 文档里读取
 
 ## 最短接法
 
@@ -83,7 +82,7 @@
 1. 建 Firebase 项目
 2. 打开 `Email/Password`
 3. 建 Web App，拿到 `firebaseConfig`
-4. 把配置和你们两个邮箱填进 [prototype/firebase-config.js](/Users/luna/Documents/Together/prototype/firebase-config.js)
+4. 把项目配置填进 [prototype/firebase-config.js](/Users/luna/Documents/Together/prototype/firebase-config.js)
 
 填完之后：
 

@@ -14,13 +14,11 @@ export const firebaseRuntimeConfig = {
       key: "me",
       name: "抖",
       accentClass: "member-dou",
-      email: "wushujiu@qq.com",
     },
     {
       key: "wife",
       name: "宝",
       accentClass: "member-bao",
-      email: "mengxian1227@163.com",
     },
   ],
 };

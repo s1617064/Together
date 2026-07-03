@@ -1,0 +1,6 @@
+.firebase-service-account.json
+*firebase-adminsdk*.json
+.firebase/
+firebase-debug.log
+*.swp
+.DS_Store
