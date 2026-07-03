@@ -1211,3 +1211,172 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+.timeline-entry-heading {
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.timeline-mainline {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.timeline-mainline .timeline-title {
+  flex: 0 0 auto;
+}
+
+.timeline-inline-note {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.timeline-meta-row {
+  margin-top: 5px;
+  align-items: center;
+  gap: 5px;
+}
+
+.timeline-meta-text {
+  color: rgba(100, 116, 139, 0.76);
+  font-size: 11.5px;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+}
+
+.timeline-meta-recorder {
+  font-weight: 500;
+}
+
+.timeline-meta-separator {
+  color: rgba(148, 163, 184, 0.58);
+  font-size: 11px;
+  line-height: 1;
+  transform: translateY(-0.5px);
+}
+
+.timeline-meta-text.member-dou {
+  color: rgba(59, 130, 246, 0.58);
+}
+
+.timeline-meta-text.member-bao {
+  color: rgba(205, 126, 163, 0.6);
+}
+
+.icon-actions {
+  gap: 6px;
+}
+
+.icon-button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 12px;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(148, 163, 184, 0.16);
+}
+
+.icon-button svg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon-button:not(.danger) svg {
+  stroke: #2563eb;
+}
+
+.icon-button.danger svg {
+  stroke: #d15a72;
+}
+
+.icon-button.danger {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(148, 163, 184, 0.16);
+}
+
+.refresh-icon-button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.refresh-icon-rotor {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  transform-origin: center center;
+}
+
+.refresh-icon-button svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: rgba(37, 99, 235, 0.9);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.refresh-icon-button:disabled {
+  opacity: 0.92;
+}
+
+.refresh-icon-button.is-refreshing .refresh-icon-rotor {
+  animation: timeline-refresh-spin 0.72s linear 1;
+}
+
+@keyframes timeline-refresh-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 480px) {
+  .timeline-inline-note {
+    font-size: 13px;
+  }
+
+  .timeline-meta-text {
+    font-size: 11px;
+  }
+
+  .icon-button {
+    width: 32px;
+    height: 32px;
+  }
+
+  .refresh-icon-button {
+    width: 32px;
+    height: 32px;
+  }
+}

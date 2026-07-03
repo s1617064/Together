@@ -592,17 +592,23 @@ function renderTimeline() {
         .map((item) => {
           const recorder = getExpenseRecorderName(item);
           const recorderClass = getExpenseRecorderClass(item);
+          const noteInline = item.note
+            ? `<span class="timeline-inline-note">${escapeHtml(item.note)}</span>`
+            : "";
 
           return `
             <article class="timeline-item">
-              <div class="entry-heading">
-                <h3 class="timeline-title">${item.category}</h3>
+              <div class="entry-heading timeline-entry-heading">
+                <div class="timeline-mainline">
+                  <h3 class="timeline-title">${item.category}</h3>
+                  ${noteInline}
+                </div>
                 <p class="amount inline-amount">${formatCurrency(item.amount)}</p>
               </div>
-              ${item.note ? `<p class="timeline-note">${escapeHtml(item.note)}</p>` : ""}
-              <div class="meta-row">
-                <span class="tag">${formatTime(item.spentAt)}</span>
-                <span class="tag member ${recorderClass}">记账人：${recorder}</span>
+              <div class="meta-row timeline-meta-row">
+                <span class="timeline-meta-text">${formatTime(item.spentAt)}</span>
+                <span class="timeline-meta-separator" aria-hidden="true">·</span>
+                <span class="timeline-meta-text timeline-meta-recorder ${recorderClass}">${recorder}记</span>
               </div>
             </article>
           `;
@@ -784,12 +790,35 @@ function renderExpenseActions(item) {
   }
 
   return `
-    <div class="expense-actions">
-      <button class="mini-button" type="button" data-action="edit-expense" data-id="${item.id}">
-        编辑
+    <div class="expense-actions icon-actions">
+      <button
+        class="mini-button icon-button"
+        type="button"
+        data-action="edit-expense"
+        data-id="${item.id}"
+        aria-label="编辑这笔记录"
+        title="编辑"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M4 20h4l10.5-10.5a2.1 2.1 0 1 0-3-3L5.5 17Z"></path>
+          <path d="m14.5 5.5 3 3"></path>
+        </svg>
       </button>
-      <button class="mini-button danger" type="button" data-action="delete-expense" data-id="${item.id}">
-        删除
+      <button
+        class="mini-button danger icon-button"
+        type="button"
+        data-action="delete-expense"
+        data-id="${item.id}"
+        aria-label="删除这笔记录"
+        title="删除"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M4 7h16"></path>
+          <path d="M9 7V4h6v3"></path>
+          <path d="M7 7l1 13h8l1-13"></path>
+          <path d="M10 11v5"></path>
+          <path d="M14 11v5"></path>
+        </svg>
       </button>
     </div>
   `;
@@ -1432,11 +1461,10 @@ function registerServiceWorker() {
 
 async function refreshCurrentView(options = {}) {
   const { silent = false } = options;
-  const originalLabel = timelineRefreshButton.textContent;
 
   if (!silent) {
     timelineRefreshButton.disabled = true;
-    timelineRefreshButton.textContent = "已刷新";
+    timelineRefreshButton.classList.add("is-refreshing");
   }
 
   if (state.mode === "cloud" && state.cloudService && state.cloudAuthUser) {
@@ -1451,7 +1479,7 @@ async function refreshCurrentView(options = {}) {
     });
 
     timelineRefreshButton.disabled = false;
-    timelineRefreshButton.textContent = originalLabel;
+    timelineRefreshButton.classList.remove("is-refreshing");
   }
 }
 

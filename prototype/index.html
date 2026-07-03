@@ -90,7 +90,24 @@
                 <h2>记账时间轴</h2>
               </div>
               <div class="timeline-actions">
-                <button class="ghost-button subtle" type="button" id="timeline-refresh-button">刷新</button>
+                <button
+                  class="ghost-button subtle refresh-icon-button"
+                  type="button"
+                  id="timeline-refresh-button"
+                  aria-label="刷新时间轴"
+                  title="刷新"
+                >
+                  <span class="refresh-icon-rotor" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">
+                      <path d="M4.9 11.8A7.2 7.2 0 0 1 16.8 6.6" />
+                      <path d="M16.8 6.6V3.9" />
+                      <path d="M16.8 6.6h-2.7" />
+                      <path d="M19.1 12.2A7.2 7.2 0 0 1 7.2 17.4" />
+                      <path d="M7.2 17.4v2.7" />
+                      <path d="M7.2 17.4h2.7" />
+                    </svg>
+                  </span>
+                </button>
               </div>
             </div>
             <p class="timeline-feedback hidden" id="timeline-feedback"></p>
