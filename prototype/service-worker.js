@@ -1,4 +1,4 @@
-const CACHE_NAME = "together-shell-v2";
+const CACHE_NAME = "together-shell-v3";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -35,11 +35,16 @@ self.addEventListener("fetch", (event) => {
   }
 
   const requestUrl = new URL(event.request.url);
+  const isSameOrigin = requestUrl.origin === self.location.origin;
   const isAppShellRequest =
-    requestUrl.origin === self.location.origin &&
+    isSameOrigin &&
     [".html", ".js", ".css", ".webmanifest", ".svg"].some((ext) =>
       requestUrl.pathname.endsWith(ext)
     );
+
+  if (!isSameOrigin) {
+    return;
+  }
 
   event.respondWith(
     isAppShellRequest
@@ -49,7 +54,11 @@ self.addEventListener("fetch", (event) => {
             caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
             return response;
           })
-          .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html")))
+          .catch(() =>
+            caches
+              .match(event.request)
+              .then((cached) => cached || caches.match("./index.html"))
+          )
       : caches.match(event.request).then((cached) => {
           if (cached) {
             return cached;
