@@ -564,6 +564,46 @@ button {
   display: none;
 }
 
+.update-toast {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  left: 50%;
+  width: min(calc(100vw - 32px), 420px);
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 15px;
+  border: 1px solid rgba(37, 99, 235, 0.14);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow:
+    0 18px 38px rgba(15, 23, 42, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(18px);
+}
+
+.update-toast p {
+  margin: 0;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.update-toast .text-button {
+  padding: 0;
+  color: var(--accent-deep);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.update-toast .text-button:disabled {
+  opacity: 0.56;
+}
+
 .timeline {
   display: grid;
   gap: 14px;
@@ -744,7 +784,7 @@ button {
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  padding: 13px 14px;
+  padding: 12px 14px;
   border-radius: 16px;
   border: 1px solid var(--line);
   background: #fff;
@@ -767,13 +807,17 @@ button {
 }
 
 .amount-field input {
-  font-size: 34px;
+  font-size: 30px;
   font-weight: 700;
   letter-spacing: -0.04em;
 }
 
+.amount-composer {
+  gap: 6px;
+}
+
 .featured-field {
-  padding: 14px;
+  padding: 11px 13px;
   border: 1px solid var(--accent-line);
   border-radius: 20px;
   background:
@@ -798,29 +842,128 @@ button {
   outline: none;
 }
 
+.amount-display-input {
+  min-height: 36px;
+}
+
+.amount-composer-hint {
+  margin: -1px 0 0;
+  color: rgba(37, 99, 235, 0.72);
+  font-size: 11.5px;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.amount-composer-hint.error {
+  color: #c2410c;
+}
+
+.amount-dock {
+  display: grid;
+  gap: 6px;
+}
+
+.amount-cancel-button {
+  justify-self: end;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.amount-keypad {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.amount-key {
+  min-height: 42px;
+  border: 0;
+  border-right: 1px solid rgba(148, 163, 184, 0.12);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+.amount-key.operator-key {
+  color: var(--accent-deep);
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.amount-key.function-key {
+  color: var(--muted);
+  font-size: 15px;
+  background: rgba(248, 250, 252, 0.92);
+}
+
+.amount-key.equals-key {
+  grid-row: span 2;
+  min-height: 84px;
+  color: #fff;
+  background: var(--accent);
+  border-right: 0;
+  border-bottom: 0;
+  box-shadow: none;
+}
+
+.amount-key.confirm-key {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.amount-key.zero-key {
+  grid-column: span 2;
+}
+
+.amount-keypad .amount-key:nth-child(4n) {
+  border-right: 0;
+}
+
+.amount-key.zero-key,
+.amount-key.equals-key,
+.amount-keypad .amount-key:nth-last-child(-n + 2):not(.equals-key) {
+  border-bottom: 0;
+}
+
 .category-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .category-chip {
-  display: grid;
-  gap: 8px;
-  justify-items: start;
-  padding: 14px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 9px;
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--text);
 }
 
 .category-chip span {
-  font-size: 20px;
+  font-size: 14px;
+  line-height: 1;
+  flex: 0 0 auto;
 }
 
 .category-chip strong {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .category-chip.active {
@@ -832,7 +975,7 @@ button {
 .custom-category {
   display: grid;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 8px;
   max-height: 120px;
   opacity: 1;
   transform: translateY(0);
@@ -857,10 +1000,6 @@ button {
 
 .full-width {
   grid-column: 1 / -1;
-}
-
-.form-actions {
-  padding-top: 4px;
 }
 
 .ledger-list {
@@ -955,11 +1094,11 @@ button {
   }
 
   .app-shell[data-active-tab="add"] .panel-head {
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
 
   .app-shell[data-active-tab="add"] .expense-form {
-    gap: 10px;
+    gap: 8px;
   }
 
   .app-shell[data-active-tab="add"] .expense-form span,
@@ -969,42 +1108,61 @@ button {
 
   .app-shell[data-active-tab="add"] .expense-form input,
   .app-shell[data-active-tab="add"] .expense-form textarea {
-    padding: 11px 12px;
+    padding: 10px 12px;
     border-radius: 14px;
   }
 
   .app-shell[data-active-tab="add"] .amount-field input {
-    font-size: 30px;
-    padding-top: 10px;
-    padding-bottom: 10px;
+    font-size: 26px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .app-shell[data-active-tab="add"] .amount-composer-hint {
+    font-size: 10.5px;
+  }
+
+  .app-shell[data-active-tab="add"] .amount-key {
+    min-height: 38px;
+    font-size: 15px;
+  }
+
+  .app-shell[data-active-tab="add"] .amount-key.function-key {
+    font-size: 14px;
+  }
+
+  .app-shell[data-active-tab="add"] .amount-key.equals-key {
+    min-height: 76px;
+  }
+
+  .app-shell[data-active-tab="add"] .amount-key.confirm-key {
+    font-size: 14px;
   }
 
   .app-shell[data-active-tab="add"] .category-grid {
-    gap: 8px;
+    gap: 6px;
   }
 
   .app-shell[data-active-tab="add"] .category-chip {
-    gap: 6px;
-    padding: 11px 10px;
-    border-radius: 14px;
+    gap: 5px;
+    padding: 8px 8px;
+    border-radius: 12px;
   }
 
   .app-shell[data-active-tab="add"] .category-chip span {
-    font-size: 18px;
+    font-size: 13px;
   }
 
   .app-shell[data-active-tab="add"] .category-chip strong {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .app-shell[data-active-tab="add"] textarea {
-    min-height: 60px;
+    min-height: 40px;
   }
 
-  .app-shell[data-active-tab="add"] .secondary-button,
-  .app-shell[data-active-tab="add"] .primary-button {
-    padding-top: 12px;
-    padding-bottom: 12px;
+  .app-shell[data-active-tab="add"] .amount-cancel-button {
+    font-size: 11px;
   }
 }
 
@@ -1038,22 +1196,39 @@ button {
 
   .category-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
+    gap: 6px;
   }
 
   .category-chip {
-    gap: 6px;
-    padding: 12px 10px;
-    border-radius: 14px;
+    gap: 5px;
+    padding: 8px 8px;
+    border-radius: 12px;
   }
 
   .category-chip span {
-    font-size: 18px;
+    font-size: 13px;
   }
 
   .category-chip strong {
-    font-size: 12px;
+    font-size: 11px;
     line-height: 1.3;
+  }
+
+  .amount-key {
+    min-height: 36px;
+    font-size: 14px;
+  }
+
+  .amount-key.equals-key {
+    min-height: 72px;
+  }
+
+  .amount-key.confirm-key {
+    font-size: 13px;
+  }
+
+  textarea[name="note"] {
+    min-height: 38px;
   }
 
   .custom-category {
@@ -1130,6 +1305,15 @@ button {
 
   .amount-field input {
     font-size: 30px;
+  }
+
+  .amount-key {
+    min-height: 38px;
+    font-size: 15px;
+  }
+
+  .amount-key.equals-key {
+    min-height: 82px;
   }
 
   .topbar h1 {
@@ -1378,5 +1562,16 @@ button {
   .refresh-icon-button {
     width: 32px;
     height: 32px;
+  }
+
+  .update-toast {
+    top: calc(env(safe-area-inset-top, 0px) + 10px);
+    width: calc(100vw - 24px);
+    padding: 11px 13px;
+  }
+
+  .update-toast p,
+  .update-toast .text-button {
+    font-size: 12px;
   }
 }

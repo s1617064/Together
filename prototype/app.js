@@ -92,6 +92,10 @@ const state = {
   timelineFeedbackMessage: "",
   timelineFeedbackTimer: null,
   lastAutoRefreshAt: 0,
+  amountExpression: "",
+  amountJustEvaluated: false,
+  lastEvaluatedExpression: "",
+  amountComposerError: "",
 };
 
 const currencyFormatter = new Intl.NumberFormat("zh-CN", {
@@ -108,6 +112,8 @@ const cloudAuthCopy = document.querySelector("#cloud-auth-copy");
 const cloudAuthForm = document.querySelector("#cloud-auth-form");
 const cloudAuthFeedback = document.querySelector("#cloud-auth-feedback");
 const appShell = document.querySelector(".app-shell");
+const updateToast = document.querySelector("#update-toast");
+const updateReloadButton = document.querySelector("#update-reload-button");
 const sessionPill = document.querySelector(".session-pill");
 const currentUserLabel = document.querySelector("#current-user-label");
 const switchUserButton = document.querySelector("#switch-user");
@@ -127,13 +133,21 @@ const ledgerBreakdownKicker = document.querySelector("#ledger-breakdown-kicker")
 const ledgerListKicker = document.querySelector("#ledger-list-kicker");
 const ledgerHelperText = document.querySelector("#ledger-helper-text");
 const timelineRefreshButton = document.querySelector("#timeline-refresh-button");
+
+let waitingServiceWorker = null;
+let shouldReloadForUpdate = false;
+let hasReloadedForUpdate = false;
 const timelineFeedback = document.querySelector("#timeline-feedback");
 const timeline = document.querySelector("#timeline");
 const ledgerList = document.querySelector("#ledger-list");
 const form = document.querySelector("#expense-form");
+const amountDisplay = document.querySelector("#amount-display");
+const amountInput = document.querySelector("#amount-input");
+const amountComposerHint = document.querySelector("#amount-composer-hint");
+const amountKeypad = document.querySelector("#amount-keypad");
+const amountSubmitKey = document.querySelector("#amount-submit-key");
 const formKicker = document.querySelector("#form-kicker");
 const formTitle = document.querySelector("#form-title");
-const submitButton = document.querySelector("#submit-button");
 const cancelEditButton = document.querySelector("#cancel-edit-button");
 const tabButtons = document.querySelectorAll("[data-tab]");
 const openTabButtons = document.querySelectorAll("[data-open-tab]");
@@ -160,6 +174,7 @@ async function bootstrap() {
   renderCloudAuthCard();
   renderCurrentUser();
   renderCategoryGrid();
+  renderAmountComposer();
   setDefaultDateTime();
   setActiveTab(state.activeTab);
   renderApp();
@@ -202,6 +217,20 @@ function bindEvents() {
 
   timelineRefreshButton.addEventListener("click", async () => {
     await refreshCurrentView();
+  });
+
+  updateReloadButton?.addEventListener("click", () => {
+    requestAppUpdate();
+  });
+
+  amountKeypad?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-amount-action]");
+    if (!button) return;
+
+    handleAmountKeypadPress(
+      button.dataset.amountAction,
+      button.dataset.amountValue ?? ""
+    );
   });
 
   cloudAuthForm.addEventListener("submit", async (event) => {
@@ -291,73 +320,7 @@ function bindEvents() {
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-
-    if (!state.currentUser || !state.currentProfile) {
-      syncLoginState();
-      return;
-    }
-
-    if (state.mode === "cloud" && !state.cloudAuthUser) {
-      showCloudAuthFeedback("正在打开你们的账本，请稍候。", false);
-      return;
-    }
-
-    syncCategoryValue();
-    const formData = new FormData(form);
-    const amount = Number(formData.get("amount"));
-    const category = String(formData.get("category") || "").trim();
-
-    if (!category) {
-      customCategoryInput.focus();
-      return;
-    }
-
-    const existingExpense = getExpenseById(state.editingExpenseId);
-    const expense = {
-      id: existingExpense?.id ?? "",
-      amount,
-      category,
-      note: String(formData.get("note") || "").trim(),
-      spentAt: String(formData.get("spentAt")),
-      ownerUid: getCurrentOwnerUid(),
-      recordedByMemberKey: state.currentProfile.key,
-      recordedByName: state.currentProfile.name,
-      recordedByAccentClass: state.currentProfile.accentClass,
-      createdAt: existingExpense?.createdAt ?? new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    if (state.mode === "cloud" && state.cloudService && state.cloudAuthUser) {
-      try {
-        await state.cloudService.saveExpense(
-          expense,
-          state.cloudAuthUser,
-          state.currentProfile
-        );
-        exitEditMode();
-        showTimelineFeedback("已记下这笔，回到首页了。");
-        setActiveTab("timeline");
-        return;
-      } catch (error) {
-        showCloudAuthFeedback(`保存失败：${error.message}`, true);
-        return;
-      }
-    }
-
-    if (state.editingExpenseId) {
-      state.expenses = state.expenses
-        .map((item) => (item.id === state.editingExpenseId ? expense : item))
-        .sort(sortBySpentAtDesc);
-    } else {
-      expense.id = crypto.randomUUID();
-      state.expenses = [expense, ...state.expenses].sort(sortBySpentAtDesc);
-    }
-
-    persistLocalExpenses();
-    renderApp();
-    exitEditMode();
-    showTimelineFeedback("已记下这笔，回到首页了。");
-    setActiveTab("timeline");
+    await submitExpenseForm();
   });
 
   cancelEditButton.addEventListener("click", () => {
@@ -840,6 +803,7 @@ function setActiveTab(tab) {
 function resetFormDefaults() {
   state.selectedCategory = categories[0].id;
   customCategoryInput.value = "";
+  resetAmountComposer();
   renderCategoryGrid();
   setDefaultDateTime();
 }
@@ -848,7 +812,9 @@ function renderFormMode() {
   const isEditing = Boolean(state.editingExpenseId);
   formKicker.textContent = isEditing ? "编辑记录" : "新增记录";
   formTitle.textContent = isEditing ? "修改这笔账" : "记下这次开销";
-  submitButton.textContent = isEditing ? "保存修改" : "确认记下";
+  if (amountSubmitKey) {
+    amountSubmitKey.textContent = isEditing ? "保存" : "确认";
+  }
   cancelEditButton.classList.toggle("hidden", !isEditing);
 }
 
@@ -883,7 +849,7 @@ function startEditExpense(expenseId) {
   }
   renderCategoryGrid();
 
-  form.elements.amount.value = expense.amount;
+  setAmountComposerFromValue(expense.amount);
   form.elements.spentAt.value = toLocalInputValue(expense.spentAt);
   form.elements.note.value = expense.note ?? "";
   renderFormMode();
@@ -925,6 +891,340 @@ function exitEditMode() {
   form.reset();
   resetFormDefaults();
   renderFormMode();
+}
+
+function handleAmountKeypadPress(action, value) {
+  state.amountComposerError = "";
+
+  if (action === "clear") {
+    resetAmountComposer();
+    renderAmountComposer();
+    return;
+  }
+
+  if (action === "backspace") {
+    if (!state.amountExpression) {
+      return;
+    }
+
+    state.amountJustEvaluated = false;
+    state.lastEvaluatedExpression = "";
+    state.amountExpression = state.amountExpression.slice(0, -1);
+    renderAmountComposer();
+    return;
+  }
+
+  if (action === "submit") {
+    void submitExpenseForm();
+    return;
+  }
+
+  if (action === "operator") {
+    appendAmountOperator(value);
+    renderAmountComposer();
+    return;
+  }
+
+  if (action === "decimal") {
+    appendAmountDecimal();
+    renderAmountComposer();
+    return;
+  }
+
+  if (action === "digit") {
+    appendAmountDigit(value);
+    renderAmountComposer();
+  }
+}
+
+function appendAmountDigit(digit) {
+  if (!/^\d$/.test(digit)) return;
+
+  if (state.amountJustEvaluated) {
+    state.amountExpression = "";
+    state.amountJustEvaluated = false;
+    state.lastEvaluatedExpression = "";
+  }
+
+  const token = getCurrentNumberToken(state.amountExpression);
+  if (token === "0") {
+    state.amountExpression = state.amountExpression.slice(0, -1) + digit;
+    return;
+  }
+
+  state.amountExpression += digit;
+}
+
+function appendAmountDecimal() {
+  if (state.amountJustEvaluated) {
+    state.amountExpression = "";
+    state.amountJustEvaluated = false;
+    state.lastEvaluatedExpression = "";
+  }
+
+  const token = getCurrentNumberToken(state.amountExpression);
+  if (token.includes(".")) {
+    return;
+  }
+
+  if (!state.amountExpression || endsWithOperator(state.amountExpression)) {
+    state.amountExpression += "0.";
+    return;
+  }
+
+  state.amountExpression += ".";
+}
+
+function appendAmountOperator(operator) {
+  if (!["+", "-", "*", "/"].includes(operator)) {
+    return;
+  }
+
+  if (!state.amountExpression) {
+    return;
+  }
+
+  state.amountJustEvaluated = false;
+  state.lastEvaluatedExpression = "";
+
+  if (state.amountExpression.endsWith(".")) {
+    state.amountExpression += "0";
+  }
+
+  if (endsWithOperator(state.amountExpression)) {
+    state.amountExpression =
+      state.amountExpression.slice(0, -1) + operator;
+    return;
+  }
+
+  state.amountExpression += operator;
+}
+
+function renderAmountComposer() {
+  if (!amountDisplay || !amountInput || !amountComposerHint) {
+    return;
+  }
+
+  const expression = state.amountExpression;
+  const exactValue = evaluateAmountExpression(expression);
+  const previewValue = evaluatePreviewAmountExpression(expression);
+
+  if (!expression) {
+    amountDisplay.value = "";
+    amountInput.value = "";
+    amountComposerHint.textContent = state.amountComposerError || "想合并记账时，像 500+27 这样输入，就能直接算出 527。";
+    amountComposerHint.classList.toggle("error", Boolean(state.amountComposerError));
+    return;
+  }
+
+  if (state.amountJustEvaluated && exactValue !== null) {
+    amountDisplay.value = formatResultNumber(exactValue);
+    amountInput.value = formatResultNumber(exactValue);
+    amountComposerHint.textContent = `${state.lastEvaluatedExpression} = ${formatResultNumber(exactValue)}`;
+    amountComposerHint.classList.toggle("error", false);
+    return;
+  }
+
+  amountInput.value = exactValue === null ? "" : formatResultNumber(exactValue);
+  amountDisplay.value =
+    previewValue !== null
+      ? formatResultNumber(previewValue)
+      : formatExpressionForDisplay(expression);
+  amountComposerHint.textContent =
+    state.amountComposerError || formatExpressionForDisplay(expression);
+  amountComposerHint.classList.toggle("error", Boolean(state.amountComposerError));
+}
+
+function resetAmountComposer() {
+  state.amountExpression = "";
+  state.amountJustEvaluated = false;
+  state.lastEvaluatedExpression = "";
+  state.amountComposerError = "";
+  renderAmountComposer();
+}
+
+function setAmountComposerFromValue(value) {
+  state.amountExpression = formatResultNumber(Number(value) || 0);
+  state.amountJustEvaluated = false;
+  state.lastEvaluatedExpression = "";
+  state.amountComposerError = "";
+  renderAmountComposer();
+}
+
+function resolveAmountForSubmit() {
+  if (!state.amountExpression) {
+    return null;
+  }
+
+  const result = evaluateAmountExpression(state.amountExpression);
+  if (result === null) {
+    return null;
+  }
+
+  state.amountExpression = formatResultNumber(result);
+  state.amountJustEvaluated = false;
+  state.lastEvaluatedExpression = "";
+  state.amountComposerError = "";
+  renderAmountComposer();
+  return result;
+}
+
+async function submitExpenseForm() {
+  if (!state.currentUser || !state.currentProfile) {
+    syncLoginState();
+    return;
+  }
+
+  if (state.mode === "cloud" && !state.cloudAuthUser) {
+    showCloudAuthFeedback("正在打开你们的账本，请稍候。", false);
+    return;
+  }
+
+  syncCategoryValue();
+  const formData = new FormData(form);
+  const amount = resolveAmountForSubmit();
+  const category = String(formData.get("category") || "").trim();
+
+  if (amount === null || amount <= 0) {
+    state.amountComposerError = "先算出一个有效金额，再保存这笔。";
+    renderAmountComposer();
+    return;
+  }
+
+  if (!category) {
+    customCategoryInput.focus();
+    return;
+  }
+
+  const existingExpense = getExpenseById(state.editingExpenseId);
+  const expense = {
+    id: existingExpense?.id ?? "",
+    amount,
+    category,
+    note: String(formData.get("note") || "").trim(),
+    spentAt: String(formData.get("spentAt")),
+    ownerUid: getCurrentOwnerUid(),
+    recordedByMemberKey: state.currentProfile.key,
+    recordedByName: state.currentProfile.name,
+    recordedByAccentClass: state.currentProfile.accentClass,
+    createdAt: existingExpense?.createdAt ?? new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (state.mode === "cloud" && state.cloudService && state.cloudAuthUser) {
+    try {
+      await state.cloudService.saveExpense(
+        expense,
+        state.cloudAuthUser,
+        state.currentProfile
+      );
+      exitEditMode();
+      showTimelineFeedback("已记下这笔，回到首页了。");
+      setActiveTab("timeline");
+      return;
+    } catch (error) {
+      showCloudAuthFeedback(`保存失败：${error.message}`, true);
+      return;
+    }
+  }
+
+  if (state.editingExpenseId) {
+    state.expenses = state.expenses
+      .map((item) => (item.id === state.editingExpenseId ? expense : item))
+      .sort(sortBySpentAtDesc);
+  } else {
+    expense.id = crypto.randomUUID();
+    state.expenses = [expense, ...state.expenses].sort(sortBySpentAtDesc);
+  }
+
+  persistLocalExpenses();
+  renderApp();
+  exitEditMode();
+  showTimelineFeedback("已记下这笔，回到首页了。");
+  setActiveTab("timeline");
+}
+
+function evaluateAmountExpression(expression) {
+  const normalized = normalizeAmountExpression(expression);
+  if (!normalized || endsWithOperator(normalized)) {
+    return null;
+  }
+
+  if (!/^\d+(\.\d+)?([+\-*/]\d+(\.\d+)?)*$/.test(normalized)) {
+    return null;
+  }
+
+  try {
+    const result = Function(`"use strict"; return (${normalized});`)();
+    if (!Number.isFinite(result)) {
+      return null;
+    }
+
+    return Number(result.toFixed(2));
+  } catch {
+    return null;
+  }
+}
+
+function evaluatePreviewAmountExpression(expression) {
+  const normalized = normalizeAmountExpression(expression);
+  if (!normalized) {
+    return null;
+  }
+
+  const previewExpression = endsWithOperator(normalized)
+    ? normalized.slice(0, -1)
+    : normalized;
+
+  if (!previewExpression || !/^\d+(\.\d+)?([+\-*/]\d+(\.\d+)?)*$/.test(previewExpression)) {
+    return null;
+  }
+
+  try {
+    const result = Function(`"use strict"; return (${previewExpression});`)();
+    if (!Number.isFinite(result)) {
+      return null;
+    }
+
+    return Number(result.toFixed(2));
+  } catch {
+    return null;
+  }
+}
+
+function normalizeAmountExpression(expression) {
+  return String(expression || "")
+    .replaceAll("×", "*")
+    .replaceAll("÷", "/")
+    .replace(/\s+/g, "");
+}
+
+function endsWithOperator(expression) {
+  return /[+\-*/]$/.test(expression);
+}
+
+function getCurrentNumberToken(expression) {
+  const parts = normalizeAmountExpression(expression).split(/[+\-*/]/);
+  return parts.at(-1) ?? "";
+}
+
+function formatExpressionForDisplay(expression) {
+  return normalizeAmountExpression(expression)
+    .replaceAll("*", " × ")
+    .replaceAll("/", " ÷ ")
+    .replaceAll("+", " + ")
+    .replaceAll("-", " - ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function formatResultNumber(value) {
+  const normalized = Number(value);
+  if (!Number.isFinite(normalized)) {
+    return "";
+  }
+
+  return normalized.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1");
 }
 
 function syncCategoryValue() {
@@ -1455,8 +1755,70 @@ function registerServiceWorker() {
   }
 
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+    navigator.serviceWorker
+      .register("./service-worker.js")
+      .then((registration) => {
+        bindServiceWorkerUpdates(registration);
+
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible") {
+            registration.update().catch(() => {});
+          }
+        });
+
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (!shouldReloadForUpdate || hasReloadedForUpdate) {
+            return;
+          }
+
+          hasReloadedForUpdate = true;
+          window.location.reload();
+        });
+      })
+      .catch(() => {});
   });
+}
+
+function bindServiceWorkerUpdates(registration) {
+  if (registration.waiting) {
+    showUpdateToast(registration.waiting);
+  }
+
+  registration.addEventListener("updatefound", () => {
+    const newWorker = registration.installing;
+    if (!newWorker) return;
+
+    newWorker.addEventListener("statechange", () => {
+      if (
+        newWorker.state === "installed" &&
+        navigator.serviceWorker.controller
+      ) {
+        showUpdateToast(newWorker);
+      }
+    });
+  });
+}
+
+function showUpdateToast(worker) {
+  if (!updateToast || !updateReloadButton) {
+    return;
+  }
+
+  waitingServiceWorker = worker;
+  updateReloadButton.disabled = false;
+  updateReloadButton.textContent = "立即更新";
+  updateToast.classList.remove("hidden");
+}
+
+function requestAppUpdate() {
+  if (!waitingServiceWorker || !updateReloadButton) {
+    return;
+  }
+
+  shouldReloadForUpdate = true;
+  updateReloadButton.disabled = true;
+  updateReloadButton.textContent = "更新中...";
+  waitingServiceWorker.postMessage({ type: "SKIP_WAITING" });
 }
 
 async function refreshCurrentView(options = {}) {
