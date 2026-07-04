@@ -112,8 +112,6 @@ const cloudAuthCopy = document.querySelector("#cloud-auth-copy");
 const cloudAuthForm = document.querySelector("#cloud-auth-form");
 const cloudAuthFeedback = document.querySelector("#cloud-auth-feedback");
 const appShell = document.querySelector(".app-shell");
-const updateToast = document.querySelector("#update-toast");
-const updateReloadButton = document.querySelector("#update-reload-button");
 const sessionPill = document.querySelector(".session-pill");
 const currentUserLabel = document.querySelector("#current-user-label");
 const switchUserButton = document.querySelector("#switch-user");
@@ -134,9 +132,6 @@ const ledgerListKicker = document.querySelector("#ledger-list-kicker");
 const ledgerHelperText = document.querySelector("#ledger-helper-text");
 const timelineRefreshButton = document.querySelector("#timeline-refresh-button");
 
-let waitingServiceWorker = null;
-let shouldReloadForUpdate = false;
-let hasReloadedForUpdate = false;
 const timelineFeedback = document.querySelector("#timeline-feedback");
 const timeline = document.querySelector("#timeline");
 const ledgerList = document.querySelector("#ledger-list");
@@ -217,10 +212,6 @@ function bindEvents() {
 
   timelineRefreshButton.addEventListener("click", async () => {
     await refreshCurrentView();
-  });
-
-  updateReloadButton?.addEventListener("click", () => {
-    requestAppUpdate();
   });
 
   amountKeypad?.addEventListener("click", (event) => {
@@ -1755,71 +1746,8 @@ function registerServiceWorker() {
   }
 
   window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("./service-worker.js")
-      .then((registration) => {
-        bindServiceWorkerUpdates(registration);
-
-        document.addEventListener("visibilitychange", () => {
-          if (document.visibilityState === "visible") {
-            registration.update().catch(() => {});
-          }
-        });
-
-        navigator.serviceWorker.addEventListener("controllerchange", () => {
-          if (!shouldReloadForUpdate || hasReloadedForUpdate) {
-            return;
-          }
-
-          hasReloadedForUpdate = true;
-          window.location.reload();
-        });
-      })
-      .catch(() => {});
+    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
   });
-}
-
-function bindServiceWorkerUpdates(registration) {
-  if (registration.waiting) {
-    showUpdateToast(registration.waiting);
-  }
-
-  registration.addEventListener("updatefound", () => {
-    const newWorker = registration.installing;
-    if (!newWorker) return;
-
-    newWorker.addEventListener("statechange", () => {
-      if (
-        newWorker.state === "installed" &&
-        navigator.serviceWorker.controller
-      ) {
-        showUpdateToast(newWorker);
-      }
-    });
-  });
-}
-
-function showUpdateToast(worker) {
-  if (!updateToast || !updateReloadButton) {
-    return;
-  }
-
-  waitingServiceWorker = worker;
-  updateReloadButton.disabled = false;
-  updateReloadButton.textContent = "立即更新";
-  updateToast.classList.remove("hidden");
-}
-
-function requestAppUpdate() {
-  if (!waitingServiceWorker || !updateReloadButton) {
-    return;
-  }
-
-  shouldReloadForUpdate = true;
-  updateReloadButton.disabled = true;
-  updateReloadButton.textContent = "更新中...";
-  updateToast?.classList.add("hidden");
-  waitingServiceWorker.postMessage({ type: "SKIP_WAITING" });
 }
 
 async function refreshCurrentView(options = {}) {

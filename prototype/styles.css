@@ -564,46 +564,6 @@ button {
   display: none;
 }
 
-.update-toast {
-  position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) + 12px);
-  left: 50%;
-  width: min(calc(100vw - 32px), 420px);
-  transform: translateX(-50%);
-  z-index: 40;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 12px 15px;
-  border: 1px solid rgba(37, 99, 235, 0.14);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow:
-    0 18px 38px rgba(15, 23, 42, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(18px);
-}
-
-.update-toast p {
-  margin: 0;
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.update-toast .text-button {
-  padding: 0;
-  color: var(--accent-deep);
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.update-toast .text-button:disabled {
-  opacity: 0.56;
-}
-
 .timeline {
   display: grid;
   gap: 14px;
@@ -1554,29 +1514,38 @@ button {
 
 @media (max-width: 480px) {
   .app-shell[data-active-tab="add"] {
-    padding-top: max(8px, env(safe-area-inset-top));
+    padding-top: max(6px, env(safe-area-inset-top));
     padding-bottom: calc(78px + max(6px, env(safe-area-inset-bottom)));
   }
 
+  .app-shell[data-active-tab="add"] .topbar {
+    display: none;
+  }
+
   .app-shell[data-active-tab="add"] .panel {
-    padding: 12px;
+    padding: 10px 12px 12px;
     border-radius: 18px;
   }
 
   .app-shell[data-active-tab="add"] .panel-head {
-    margin-bottom: 6px;
+    margin-bottom: 4px;
+  }
+
+  .app-shell[data-active-tab="add"] .panel-kicker {
+    display: none;
   }
 
   .app-shell[data-active-tab="add"] .panel-head h2 {
-    font-size: 28px;
+    font-size: 24px;
+    line-height: 1.08;
   }
 
   .app-shell[data-active-tab="add"] .expense-form {
-    gap: 6px;
+    gap: 5px;
   }
 
   .app-shell[data-active-tab="add"] .expense-form label {
-    gap: 6px;
+    gap: 5px;
   }
 
   .app-shell[data-active-tab="add"] .expense-form span,
@@ -1586,25 +1555,25 @@ button {
 
   .app-shell[data-active-tab="add"] .expense-form input,
   .app-shell[data-active-tab="add"] .expense-form textarea {
-    padding: 9px 11px;
+    padding: 8px 11px;
     border-radius: 13px;
   }
 
   .app-shell[data-active-tab="add"] .featured-field {
-    padding: 10px 12px;
+    padding: 9px 12px;
   }
 
   .app-shell[data-active-tab="add"] .amount-field input,
   .app-shell[data-active-tab="add"] .amount-display-input {
-    min-height: 30px;
-    font-size: 22px;
-    padding-top: 4px;
-    padding-bottom: 4px;
+    min-height: 28px;
+    font-size: 20px;
+    padding-top: 3px;
+    padding-bottom: 3px;
   }
 
   .app-shell[data-active-tab="add"] .amount-composer-hint {
     font-size: 10px;
-    line-height: 1.2;
+    line-height: 1.25;
   }
 
   .app-shell[data-active-tab="add"] .category-grid {
@@ -1616,8 +1585,8 @@ button {
     align-items: center;
     justify-content: flex-start;
     gap: 4px;
-    min-height: 36px;
-    padding: 7px 8px;
+    min-height: 38px;
+    padding: 8px 9px;
     border-radius: 11px;
   }
 
@@ -1634,21 +1603,21 @@ button {
   }
 
   .app-shell[data-active-tab="add"] .custom-category {
-    margin-top: 6px;
+    margin-top: 4px;
   }
 
   .app-shell[data-active-tab="add"] .date-field input,
   .app-shell[data-active-tab="add"] textarea[name="note"] {
-    min-height: 38px;
+    min-height: 34px;
   }
 
   .app-shell[data-active-tab="add"] textarea[name="note"] {
     resize: none;
-    line-height: 1.25;
+    line-height: 1.2;
   }
 
   .app-shell[data-active-tab="add"] .amount-dock {
-    gap: 4px;
+    gap: 6px;
   }
 
   .app-shell[data-active-tab="add"] .amount-cancel-button {
@@ -1656,17 +1625,17 @@ button {
   }
 
   .app-shell[data-active-tab="add"] .amount-keypad {
-    grid-auto-rows: 32px;
+    grid-auto-rows: 40px;
     border-radius: 16px;
   }
 
   .app-shell[data-active-tab="add"] .amount-key {
-    font-size: 13px;
+    font-size: 16px;
   }
 
   .app-shell[data-active-tab="add"] .amount-key.function-key,
   .app-shell[data-active-tab="add"] .amount-key.confirm-key {
-    font-size: 12px;
+    font-size: 14px;
   }
 
 }
@@ -1690,14 +1659,4 @@ button {
     height: 32px;
   }
 
-  .update-toast {
-    top: calc(env(safe-area-inset-top, 0px) + 10px);
-    width: calc(100vw - 24px);
-    padding: 11px 13px;
-  }
-
-  .update-toast p,
-  .update-toast .text-button {
-    font-size: 12px;
-  }
 }
