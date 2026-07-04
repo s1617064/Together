@@ -125,20 +125,9 @@
             </div>
 
             <form id="expense-form" class="expense-form">
-              <label class="full-width amount-field featured-field amount-composer">
+              <label class="full-width amount-field featured-field">
                 <span>这次花了多少</span>
-                <input
-                  class="amount-display-input"
-                  type="text"
-                  id="amount-display"
-                  placeholder="0.00"
-                  inputmode="none"
-                  readonly
-                />
-                <input type="hidden" name="amount" id="amount-input" required />
-                <p class="amount-composer-hint" id="amount-composer-hint">
-                  想合并记账时，像 500+27 这样输入，就能直接算出 527。
-                </p>
+                <input type="number" step="0.01" min="0" name="amount" placeholder="0.00" required />
               </label>
 
               <div class="full-width">
@@ -158,36 +147,12 @@
 
               <label class="full-width">
                 <span>备注</span>
-                <textarea name="note" rows="1" placeholder="例如：晚饭、超市采购、打车回家"></textarea>
+                <textarea name="note" rows="2" placeholder="例如：晚饭、超市采购、打车回家"></textarea>
               </label>
 
-              <div class="full-width amount-dock">
-                <button type="button" class="amount-cancel-button hidden" id="cancel-edit-button">取消编辑</button>
-
-                <div class="amount-keypad" id="amount-keypad">
-                  <button type="button" class="amount-key function-key" data-amount-action="clear">C</button>
-                  <button type="button" class="amount-key operator-key" data-amount-action="operator" data-amount-value="/">÷</button>
-                  <button type="button" class="amount-key operator-key" data-amount-action="operator" data-amount-value="*">×</button>
-                  <button type="button" class="amount-key function-key" data-amount-action="backspace">⌫</button>
-
-                  <button type="button" class="amount-key" data-amount-action="digit" data-amount-value="7">7</button>
-                  <button type="button" class="amount-key" data-amount-action="digit" data-amount-value="8">8</button>
-                  <button type="button" class="amount-key" data-amount-action="digit" data-amount-value="9">9</button>
-                  <button type="button" class="amount-key operator-key" data-amount-action="operator" data-amount-value="-">-</button>
-
-                  <button type="button" class="amount-key" data-amount-action="digit" data-amount-value="4">4</button>
-                  <button type="button" class="amount-key" data-amount-action="digit" data-amount-value="5">5</button>
-                  <button type="button" class="amount-key" data-amount-action="digit" data-amount-value="6">6</button>
-                  <button type="button" class="amount-key operator-key" data-amount-action="operator" data-amount-value="+">+</button>
-
-                  <button type="button" class="amount-key" data-amount-action="digit" data-amount-value="1">1</button>
-                  <button type="button" class="amount-key" data-amount-action="digit" data-amount-value="2">2</button>
-                  <button type="button" class="amount-key" data-amount-action="digit" data-amount-value="3">3</button>
-                  <button type="button" class="amount-key confirm-key" data-amount-action="submit" id="amount-submit-key">确认</button>
-
-                  <button type="button" class="amount-key zero-key" data-amount-action="digit" data-amount-value="0">0</button>
-                  <button type="button" class="amount-key" data-amount-action="decimal">.</button>
-                </div>
+              <div class="form-actions full-width">
+                <button type="submit" class="primary-button" id="submit-button">保存这笔记录</button>
+                <button type="button" class="secondary-button hidden" id="cancel-edit-button">取消编辑</button>
               </div>
             </form>
           </section>
