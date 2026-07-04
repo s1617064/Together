@@ -212,6 +212,7 @@ button {
 
 .main-content {
   flex: 1;
+  min-height: 0;
 }
 
 .topbar-ledger-identity {
@@ -1518,11 +1519,21 @@ button {
     padding-bottom: calc(78px + max(6px, env(safe-area-inset-bottom)));
   }
 
+  .app-shell[data-active-tab="add"] .main-content,
+  .app-shell[data-active-tab="add"] .tab-panel[data-tab-panel="add"] {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+  }
+
   .app-shell[data-active-tab="add"] .topbar {
     display: none;
   }
 
   .app-shell[data-active-tab="add"] .panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     padding: 10px 12px 12px;
     border-radius: 18px;
   }
@@ -1541,7 +1552,9 @@ button {
   }
 
   .app-shell[data-active-tab="add"] .expense-form {
+    flex: 1;
     gap: 5px;
+    align-content: start;
   }
 
   .app-shell[data-active-tab="add"] .expense-form label {
@@ -1572,8 +1585,8 @@ button {
   }
 
   .app-shell[data-active-tab="add"] .amount-composer-hint {
-    font-size: 10px;
-    line-height: 1.25;
+    font-size: 9px;
+    line-height: 1.2;
   }
 
   .app-shell[data-active-tab="add"] .category-grid {
@@ -1584,20 +1597,20 @@ button {
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 4px;
-    min-height: 38px;
-    padding: 8px 9px;
-    border-radius: 11px;
+    gap: 5px;
+    min-height: 42px;
+    padding: 8px 10px;
+    border-radius: 12px;
   }
 
   .app-shell[data-active-tab="add"] .category-chip span {
     flex: 0 0 auto;
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1;
   }
 
   .app-shell[data-active-tab="add"] .category-chip strong {
-    font-size: 10px;
+    font-size: 11px;
     line-height: 1.15;
     white-space: nowrap;
   }
@@ -1617,6 +1630,7 @@ button {
   }
 
   .app-shell[data-active-tab="add"] .amount-dock {
+    margin-top: auto;
     gap: 6px;
   }
 
@@ -1625,7 +1639,7 @@ button {
   }
 
   .app-shell[data-active-tab="add"] .amount-keypad {
-    grid-auto-rows: 40px;
+    grid-auto-rows: 44px;
     border-radius: 16px;
   }
 
