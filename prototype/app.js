@@ -131,6 +131,7 @@ const timelineFeedback = document.querySelector("#timeline-feedback");
 const timeline = document.querySelector("#timeline");
 const ledgerList = document.querySelector("#ledger-list");
 const form = document.querySelector("#expense-form");
+const amountInputField = document.querySelector("#amount-input-field");
 const formKicker = document.querySelector("#form-kicker");
 const formTitle = document.querySelector("#form-title");
 const submitButton = document.querySelector("#submit-button");
@@ -304,8 +305,13 @@ function bindEvents() {
 
     syncCategoryValue();
     const formData = new FormData(form);
-    const amount = Number(formData.get("amount"));
+    const amount = parseAmountValue(formData.get("amount"));
     const category = String(formData.get("category") || "").trim();
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      focusAmountInputField();
+      return;
+    }
 
     if (!category) {
       customCategoryInput.focus();
@@ -835,6 +841,19 @@ function setActiveTab(tab) {
   tabPanels.forEach((panel) => {
     panel.classList.toggle("active", panel.dataset.tabPanel === tab);
   });
+
+  if (tab === "add") {
+    focusAmountInputField();
+  }
+}
+
+function focusAmountInputField() {
+  if (!amountInputField) {
+    return;
+  }
+
+  amountInputField.focus({ preventScroll: true });
+  amountInputField.select();
 }
 
 function resetFormDefaults() {
@@ -943,6 +962,16 @@ function setDefaultDateTime() {
   if (!input) return;
 
   input.value = toLocalInputValue(new Date().toISOString());
+}
+
+function parseAmountValue(rawValue) {
+  const normalized = String(rawValue || "")
+    .trim()
+    .replace(/,/g, "")
+    .replace(/。/g, ".")
+    .replace(/．/g, ".");
+
+  return Number(normalized);
 }
 
 function toLocalInputValue(value) {
