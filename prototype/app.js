@@ -1818,6 +1818,7 @@ function requestAppUpdate() {
   shouldReloadForUpdate = true;
   updateReloadButton.disabled = true;
   updateReloadButton.textContent = "更新中...";
+  updateToast?.classList.add("hidden");
   waitingServiceWorker.postMessage({ type: "SKIP_WAITING" });
 }
 
