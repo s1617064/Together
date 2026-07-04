@@ -1552,9 +1552,14 @@ button {
   }
 
   .app-shell[data-active-tab="add"] .expense-form {
+    display: flex;
+    flex-direction: column;
     flex: 1;
     gap: 5px;
-    align-content: start;
+  }
+
+  .app-shell[data-active-tab="add"] .expense-form > * {
+    width: 100%;
   }
 
   .app-shell[data-active-tab="add"] .expense-form label {
