@@ -527,6 +527,11 @@ function renderCurrentUser() {
   appShell.className = `app-shell ${accentClass}`.trim();
   currentUserLabel.className = `current-user-label ${accentClass}`;
   switchUserButton.className = `text-button ${accentClass}`;
+  switchUserButton.textContent = state.currentProfile ? "切换" : "登录";
+  switchUserButton.setAttribute(
+    "aria-label",
+    state.currentProfile ? `切换当前记账人，当前为${state.currentProfile.name}` : "登录共享账本"
+  );
   sessionPill.className = `session-pill ${accentClass}`;
 }
 
@@ -659,18 +664,26 @@ function renderLedger() {
     .map((item) => {
       const recorderClass = getExpenseRecorderClass(item);
       const actionMarkup = renderExpenseActions(item);
+      const noteInline = item.note
+        ? `<span class="timeline-inline-note">${escapeHtml(item.note)}</span>`
+        : "";
       return `
         <article class="ledger-row">
-          <div class="entry-heading">
-            <h3 class="ledger-title">${item.category}</h3>
+          <div class="entry-heading timeline-entry-heading">
+            <div class="timeline-mainline">
+              <h3 class="ledger-title">${item.category}</h3>
+              ${noteInline}
+            </div>
             <p class="amount inline-amount">${formatCurrency(item.amount)}</p>
           </div>
-          ${item.note ? `<p class="timeline-note">${escapeHtml(item.note)}</p>` : ""}
-          <div class="ledger-meta">
-            <span class="tag">${formatDateTime(item.spentAt)}</span>
-            <span class="tag member ${recorderClass}">记账人：${getExpenseRecorderName(item)}</span>
+          <div class="ledger-detail-row">
+            <div class="ledger-meta ledger-meta-row">
+              <span class="ledger-meta-text">${formatDateTime(item.spentAt)}</span>
+              <span class="ledger-meta-separator">/</span>
+              <span class="ledger-recorder-pill ${recorderClass}">${getExpenseRecorderName(item)}记</span>
+            </div>
+            ${actionMarkup}
           </div>
-          ${actionMarkup}
         </article>
       `;
     })
@@ -796,12 +809,37 @@ function renderExpenseActions(item) {
   }
 
   return `
-    <div class="expense-actions">
-      <button class="mini-button" type="button" data-action="edit-expense" data-id="${item.id}">
-        编辑
+    <div class="expense-actions icon-actions">
+      <button
+        class="ghost-button subtle icon-button"
+        type="button"
+        data-action="edit-expense"
+        data-id="${item.id}"
+        aria-label="编辑这笔记录"
+        title="编辑"
+      >
+        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+          <path d="M4 20.2l3.4-.6 9.4-9.4-2.8-2.8-9.4 9.4L4 20.2z" />
+          <path d="M12.9 6.6l2.8 2.8" />
+          <path d="M14.5 5l1.1-1.1a1.8 1.8 0 0 1 2.5 0l2 2a1.8 1.8 0 0 1 0 2.5L19 9.5" />
+        </svg>
       </button>
-      <button class="mini-button danger" type="button" data-action="delete-expense" data-id="${item.id}">
-        删除
+      <button
+        class="ghost-button subtle icon-button danger"
+        type="button"
+        data-action="delete-expense"
+        data-id="${item.id}"
+        aria-label="删除这笔记录"
+        title="删除"
+      >
+        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+          <path d="M5.5 7.4h13" />
+          <path d="M9.4 7.4V5.6c0-.7.5-1.2 1.2-1.2h2.8c.7 0 1.2.5 1.2 1.2v1.8" />
+          <path d="M8.4 10.3v7.2" />
+          <path d="M12 10.3v7.2" />
+          <path d="M15.6 10.3v7.2" />
+          <path d="M7.5 7.4l.7 11c.1 1 .9 1.8 1.9 1.8h3.8c1 0 1.8-.8 1.9-1.8l.7-11" />
+        </svg>
       </button>
     </div>
   `;

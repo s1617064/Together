@@ -243,23 +243,42 @@ button {
 .session-pill {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 7px;
+  padding: 6px 10px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(8px);
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .session-pill.member-dou {
-  border-color: rgba(37, 99, 235, 0.18);
-  background: linear-gradient(180deg, #ffffff, #f4f8ff);
+  border-color: rgba(37, 99, 235, 0.14);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 248, 255, 0.9));
 }
 
 .session-pill.member-bao {
-  border-color: rgba(219, 39, 119, 0.16);
-  background: linear-gradient(180deg, #ffffff, #fff5f9);
+  border-color: rgba(219, 39, 119, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 245, 249, 0.88));
+}
+
+.identity-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.8);
+  flex: 0 0 auto;
+}
+
+.session-pill.member-dou .identity-dot {
+  background: rgba(37, 99, 235, 0.78);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.session-pill.member-bao .identity-dot {
+  background: rgba(219, 39, 119, 0.58);
+  box-shadow: 0 0 0 3px rgba(219, 39, 119, 0.08);
 }
 
 .current-user-label.member-dou {
@@ -274,7 +293,9 @@ button {
   border: 0;
   padding: 0;
   background: transparent;
-  color: var(--accent);
+  color: rgba(37, 99, 235, 0.72);
+  font-size: 12px;
+  line-height: 1;
 }
 
 .text-button.member-dou {
@@ -303,12 +324,6 @@ button {
 
 .panel-subhead {
   margin-top: 18px;
-}
-
-.identity-inline-label {
-  color: var(--muted);
-  font-size: 12px;
-  white-space: nowrap;
 }
 
 .topbar-ledger-identity .session-pill {
@@ -725,6 +740,56 @@ button {
   display: flex;
   gap: 8px;
   margin-top: 12px;
+}
+
+.ledger-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.ledger-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  flex-wrap: wrap;
+  margin-top: 0;
+}
+
+.ledger-meta-text {
+  color: rgba(71, 85, 105, 0.82);
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+
+.ledger-meta-separator {
+  color: rgba(148, 163, 184, 0.72);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.ledger-recorder-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.ledger-recorder-pill.member-dou {
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--dou-text);
+}
+
+.ledger-recorder-pill.member-bao {
+  background: rgba(219, 39, 119, 0.1);
+  color: var(--bao-text);
 }
 
 .mini-button {
@@ -1291,25 +1356,29 @@ button {
 }
 
 .icon-actions {
+  display: flex;
+  align-items: center;
   gap: 6px;
 }
 
 .icon-button {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border-radius: 12px;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.82);
-  border-color: rgba(148, 163, 184, 0.16);
-}
-
-.icon-button svg {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 15px;
-  height: 15px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 999px;
+  background: transparent;
+  border: 0;
+  flex: 0 0 auto;
+  box-shadow: none;
+}
+
+.icon-button svg {
+  display: block;
+  width: 16px;
+  height: 16px;
   fill: none;
   stroke-width: 1.9;
   stroke-linecap: round;
@@ -1325,8 +1394,18 @@ button {
 }
 
 .icon-button.danger {
-  background: rgba(255, 255, 255, 0.82);
-  border-color: rgba(148, 163, 184, 0.16);
+  background: transparent;
+}
+
+.ghost-button.subtle.icon-button,
+.ghost-button.subtle.icon-button.danger {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.expense-actions.icon-actions {
+  margin-top: 0;
 }
 
 .refresh-icon-button {
