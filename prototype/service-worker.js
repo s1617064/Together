@@ -1,19 +1,18 @@
 const CACHE_NAME = "together-shell-v3";
 const APP_SHELL = [
-  "./",
-  "./index.html",
-  "./styles.css",
-  "./app.js",
-  "./firebase-config.js",
-  "./firebase-service.js",
-  "./manifest.webmanifest",
-  "./icon.svg",
-  "./icon-maskable.svg",
+  "/",
+  "/index.html",
+  "/styles.css",
+  "/app.js",
+  "/firebase-config.js",
+  "/firebase-service.js",
+  "/manifest.webmanifest",
+  "/icon.svg",
+  "/icon-maskable.svg",
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
-  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
@@ -29,6 +28,12 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") {
     return;
@@ -36,41 +41,60 @@ self.addEventListener("fetch", (event) => {
 
   const requestUrl = new URL(event.request.url);
   const isSameOrigin = requestUrl.origin === self.location.origin;
-  const isAppShellRequest =
+  const isNavigationRequest = event.request.mode === "navigate";
+  const isAppShellAsset =
     isSameOrigin &&
     [".html", ".js", ".css", ".webmanifest", ".svg"].some((ext) =>
       requestUrl.pathname.endsWith(ext)
     );
 
-  if (!isSameOrigin) {
+  if (isNavigationRequest || isAppShellAsset) {
+    event.respondWith(networkFirstAppShell(event.request, isNavigationRequest));
     return;
   }
 
-  event.respondWith(
-    isAppShellRequest
-      ? fetch(event.request)
-          .then((response) => {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-            return response;
-          })
-          .catch(() =>
-            caches
-              .match(event.request)
-              .then((cached) => cached || caches.match("./index.html"))
-          )
-      : caches.match(event.request).then((cached) => {
-          if (cached) {
-            return cached;
-          }
-
-          return fetch(event.request)
-            .then((response) => {
-              const copy = response.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-              return response;
-            })
-            .catch(() => caches.match("./index.html"));
-        })
-  );
+  event.respondWith(cacheFirst(event.request));
 });
+
+async function networkFirstAppShell(request, isNavigationRequest) {
+  try {
+    const response = await fetch(request, { cache: "no-store" });
+
+    if (shouldCache(response)) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, response.clone());
+    }
+
+    return response;
+  } catch (error) {
+    const cached = await caches.match(request);
+    if (cached) {
+      return cached;
+    }
+
+    if (isNavigationRequest) {
+      return caches.match("/index.html");
+    }
+
+    return caches.match("/index.html");
+  }
+}
+
+async function cacheFirst(request) {
+  const cached = await caches.match(request);
+  if (cached) {
+    return cached;
+  }
+
+  const response = await fetch(request);
+  if (shouldCache(response)) {
+    const cache = await caches.open(CACHE_NAME);
+    cache.put(request, response.clone());
+  }
+
+  return response;
+}
+
+function shouldCache(response) {
+  return Boolean(response && response.ok && response.type === "basic");
+}

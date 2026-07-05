@@ -108,6 +108,8 @@ const cloudAuthCopy = document.querySelector("#cloud-auth-copy");
 const cloudAuthForm = document.querySelector("#cloud-auth-form");
 const cloudAuthFeedback = document.querySelector("#cloud-auth-feedback");
 const appShell = document.querySelector(".app-shell");
+const updateToast = document.querySelector("#update-toast");
+const updateReloadButton = document.querySelector("#update-reload-button");
 const sessionPill = document.querySelector(".session-pill");
 const currentUserLabel = document.querySelector("#current-user-label");
 const switchUserButton = document.querySelector("#switch-user");
@@ -131,7 +133,6 @@ const timelineFeedback = document.querySelector("#timeline-feedback");
 const timeline = document.querySelector("#timeline");
 const ledgerList = document.querySelector("#ledger-list");
 const form = document.querySelector("#expense-form");
-const amountInputField = document.querySelector("#amount-input-field");
 const formKicker = document.querySelector("#form-kicker");
 const formTitle = document.querySelector("#form-title");
 const submitButton = document.querySelector("#submit-button");
@@ -139,6 +140,10 @@ const cancelEditButton = document.querySelector("#cancel-edit-button");
 const tabButtons = document.querySelectorAll("[data-tab]");
 const openTabButtons = document.querySelectorAll("[data-open-tab]");
 const tabPanels = document.querySelectorAll("[data-tab-panel]");
+
+let swRegistration = null;
+let swIsReloading = false;
+let swShouldReloadForUpdate = false;
 
 if (state.mode === "demo") {
   state.currentUser = loadSession();
@@ -177,11 +182,13 @@ async function bootstrap() {
 
 function bindEvents() {
   window.addEventListener("pageshow", () => {
+    swRegistration?.update().catch(() => {});
     void autoRefreshOnResume();
   });
 
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
+      swRegistration?.update().catch(() => {});
       void autoRefreshOnResume();
     }
   });
@@ -205,6 +212,19 @@ function bindEvents() {
     await refreshCurrentView();
   });
 
+  updateReloadButton?.addEventListener("click", () => {
+    if (!swRegistration?.waiting) {
+      updateToast?.classList.add("hidden");
+      swRegistration?.update().catch(() => {});
+      return;
+    }
+
+    swShouldReloadForUpdate = true;
+    updateReloadButton.disabled = true;
+    updateReloadButton.textContent = "更新中...";
+    swRegistration.waiting.postMessage({ type: "SKIP_WAITING" });
+  });
+
   cloudAuthForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!state.cloudService) return;
@@ -223,10 +243,10 @@ function bindEvents() {
     try {
       if (action === "sign-up") {
         await state.cloudService.signUp(email, password);
-        showCloudAuthFeedback("注册成功，马上进入你们的账本。", false);
+        showCloudAuthFeedback("注册成功，正在进入共享账本。", false);
       } else {
         await state.cloudService.signIn(email, password);
-        showCloudAuthFeedback("欢迎回来，正在更新最近记录。", false);
+        showCloudAuthFeedback("登录成功，正在同步账本。", false);
       }
     } catch (error) {
       showCloudAuthFeedback(getReadableAuthError(error), true);
@@ -299,19 +319,14 @@ function bindEvents() {
     }
 
     if (state.mode === "cloud" && !state.cloudAuthUser) {
-      showCloudAuthFeedback("正在打开你们的账本，请稍候。", false);
+      showCloudAuthFeedback("正在连接共享账本，请稍等一下。", false);
       return;
     }
 
     syncCategoryValue();
     const formData = new FormData(form);
-    const amount = parseAmountValue(formData.get("amount"));
+    const amount = Number(formData.get("amount"));
     const category = String(formData.get("category") || "").trim();
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-      focusAmountInputField();
-      return;
-    }
 
     if (!category) {
       customCategoryInput.focus();
@@ -372,26 +387,10 @@ function bindEvents() {
 }
 
 function attachCloudAuthWatcher() {
-  state.cloudService.watchAuth(({ user, member, error, offline }) => {
+  state.cloudService.watchAuth(({ user, member, error }) => {
     state.cloudAuthResolved = true;
 
     if (error) {
-      if (offline && state.currentProfile) {
-        if (state.cloudUnsubscribe) {
-          state.cloudUnsubscribe();
-          state.cloudUnsubscribe = null;
-        }
-
-        state.mode = "cloud";
-        state.currentUser = state.currentProfile.key;
-        state.cloudAuthUser = null;
-        renderCurrentUser();
-        renderApp();
-        syncLoginState();
-        showCloudAuthFeedback(error, false);
-        return;
-      }
-
       if (state.cloudUnsubscribe) {
         state.cloudUnsubscribe();
         state.cloudUnsubscribe = null;
@@ -432,7 +431,7 @@ function attachCloudAuthWatcher() {
     state.cloudAuthUser = user;
     persistAppMode();
     persistCloudMemberCache(member);
-    showCloudAuthFeedback("已连上共享账本。", false);
+    showCloudAuthFeedback("云同步已连接。", false);
     renderCurrentUser();
     subscribeCloudExpenses();
     syncLoginState();
@@ -598,23 +597,17 @@ function renderTimeline() {
         .map((item) => {
           const recorder = getExpenseRecorderName(item);
           const recorderClass = getExpenseRecorderClass(item);
-          const noteInline = item.note
-            ? `<span class="timeline-inline-note">${escapeHtml(item.note)}</span>`
-            : "";
 
           return `
             <article class="timeline-item">
-              <div class="entry-heading timeline-entry-heading">
-                <div class="timeline-mainline">
-                  <h3 class="timeline-title">${item.category}</h3>
-                  ${noteInline}
-                </div>
+              <div class="entry-heading">
+                <h3 class="timeline-title">${item.category}</h3>
                 <p class="amount inline-amount">${formatCurrency(item.amount)}</p>
               </div>
-              <div class="meta-row timeline-meta-row">
-                <span class="timeline-meta-text">${formatTime(item.spentAt)}</span>
-                <span class="timeline-meta-separator" aria-hidden="true">·</span>
-                <span class="timeline-meta-text timeline-meta-recorder ${recorderClass}">${recorder}记</span>
+              ${item.note ? `<p class="timeline-note">${escapeHtml(item.note)}</p>` : ""}
+              <div class="meta-row">
+                <span class="tag">${formatTime(item.spentAt)}</span>
+                <span class="tag member ${recorderClass}">记账人：${recorder}</span>
               </div>
             </article>
           `;
@@ -796,35 +789,12 @@ function renderExpenseActions(item) {
   }
 
   return `
-    <div class="expense-actions icon-actions">
-      <button
-        class="mini-button icon-button"
-        type="button"
-        data-action="edit-expense"
-        data-id="${item.id}"
-        aria-label="编辑这笔记录"
-        title="编辑"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M4 20h4l10.5-10.5a2.1 2.1 0 1 0-3-3L5.5 17Z"></path>
-          <path d="m14.5 5.5 3 3"></path>
-        </svg>
+    <div class="expense-actions">
+      <button class="mini-button" type="button" data-action="edit-expense" data-id="${item.id}">
+        编辑
       </button>
-      <button
-        class="mini-button danger icon-button"
-        type="button"
-        data-action="delete-expense"
-        data-id="${item.id}"
-        aria-label="删除这笔记录"
-        title="删除"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M4 7h16"></path>
-          <path d="M9 7V4h6v3"></path>
-          <path d="M7 7l1 13h8l1-13"></path>
-          <path d="M10 11v5"></path>
-          <path d="M14 11v5"></path>
-        </svg>
+      <button class="mini-button danger" type="button" data-action="delete-expense" data-id="${item.id}">
+        删除
       </button>
     </div>
   `;
@@ -841,19 +811,6 @@ function setActiveTab(tab) {
   tabPanels.forEach((panel) => {
     panel.classList.toggle("active", panel.dataset.tabPanel === tab);
   });
-
-  if (tab === "add") {
-    focusAmountInputField();
-  }
-}
-
-function focusAmountInputField() {
-  if (!amountInputField) {
-    return;
-  }
-
-  amountInputField.focus({ preventScroll: true });
-  amountInputField.select();
 }
 
 function resetFormDefaults() {
@@ -914,7 +871,7 @@ async function deleteExpense(expenseId) {
   if (!expense || !isOwnedByCurrentUser(expense)) return;
 
   if (state.mode === "cloud" && !state.cloudAuthUser) {
-    showCloudAuthFeedback("正在打开你们的账本，请稍候。", false);
+    showCloudAuthFeedback("正在连接共享账本，请稍等一下。", false);
     return;
   }
 
@@ -962,16 +919,6 @@ function setDefaultDateTime() {
   if (!input) return;
 
   input.value = toLocalInputValue(new Date().toISOString());
-}
-
-function parseAmountValue(rawValue) {
-  const normalized = String(rawValue || "")
-    .trim()
-    .replace(/,/g, "")
-    .replace(/。/g, ".")
-    .replace(/．/g, ".");
-
-  return Number(normalized);
 }
 
 function toLocalInputValue(value) {
@@ -1484,16 +1431,65 @@ function registerServiceWorker() {
   }
 
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+    navigator.serviceWorker
+      .register("./service-worker.js")
+      .then((registration) => {
+        swRegistration = registration;
+        bindServiceWorkerLifecycle(registration);
+        return registration.update().catch(() => {});
+      })
+      .catch(() => {});
   });
+}
+
+function bindServiceWorkerLifecycle(registration) {
+  if (registration.waiting) {
+    showUpdateToast();
+  }
+
+  registration.addEventListener("updatefound", () => {
+    const installingWorker = registration.installing;
+    if (!installingWorker) {
+      return;
+    }
+
+    installingWorker.addEventListener("statechange", () => {
+      if (
+        installingWorker.state === "installed" &&
+        navigator.serviceWorker.controller
+      ) {
+        showUpdateToast();
+      }
+    });
+  });
+
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (swIsReloading || !swShouldReloadForUpdate) {
+      return;
+    }
+
+    swIsReloading = true;
+    window.location.reload();
+  });
+}
+
+function showUpdateToast() {
+  if (!updateToast || !updateReloadButton) {
+    return;
+  }
+
+  updateReloadButton.disabled = false;
+  updateReloadButton.textContent = "立即更新";
+  updateToast.classList.remove("hidden");
 }
 
 async function refreshCurrentView(options = {}) {
   const { silent = false } = options;
+  const originalLabel = timelineRefreshButton.textContent;
 
   if (!silent) {
     timelineRefreshButton.disabled = true;
-    timelineRefreshButton.classList.add("is-refreshing");
+    timelineRefreshButton.textContent = "已刷新";
   }
 
   if (state.mode === "cloud" && state.cloudService && state.cloudAuthUser) {
@@ -1508,7 +1504,7 @@ async function refreshCurrentView(options = {}) {
     });
 
     timelineRefreshButton.disabled = false;
-    timelineRefreshButton.classList.remove("is-refreshing");
+    timelineRefreshButton.textContent = originalLabel;
   }
 }
 
