@@ -133,6 +133,7 @@ const timelineFeedback = document.querySelector("#timeline-feedback");
 const timeline = document.querySelector("#timeline");
 const ledgerList = document.querySelector("#ledger-list");
 const form = document.querySelector("#expense-form");
+const amountInputField = document.querySelector("#amount-input-field");
 const formKicker = document.querySelector("#form-kicker");
 const formTitle = document.querySelector("#form-title");
 const submitButton = document.querySelector("#submit-button");
@@ -597,17 +598,23 @@ function renderTimeline() {
         .map((item) => {
           const recorder = getExpenseRecorderName(item);
           const recorderClass = getExpenseRecorderClass(item);
+          const noteInline = item.note
+            ? `<span class="timeline-inline-note">${escapeHtml(item.note)}</span>`
+            : "";
 
           return `
             <article class="timeline-item">
-              <div class="entry-heading">
-                <h3 class="timeline-title">${item.category}</h3>
+              <div class="entry-heading timeline-entry-heading">
+                <div class="timeline-mainline">
+                  <h3 class="timeline-title">${item.category}</h3>
+                  ${noteInline}
+                </div>
                 <p class="amount inline-amount">${formatCurrency(item.amount)}</p>
               </div>
-              ${item.note ? `<p class="timeline-note">${escapeHtml(item.note)}</p>` : ""}
-              <div class="meta-row">
-                <span class="tag">${formatTime(item.spentAt)}</span>
-                <span class="tag member ${recorderClass}">记账人：${recorder}</span>
+              <div class="meta-row timeline-meta-row">
+                <span class="timeline-meta-text">${formatTime(item.spentAt)}</span>
+                <span class="timeline-meta-separator">/</span>
+                <span class="timeline-meta-text timeline-meta-recorder ${recorderClass}">${recorder}记</span>
               </div>
             </article>
           `;
@@ -811,6 +818,31 @@ function setActiveTab(tab) {
   tabPanels.forEach((panel) => {
     panel.classList.toggle("active", panel.dataset.tabPanel === tab);
   });
+
+  if (tab === "add") {
+    focusAmountField();
+  }
+}
+
+function focusAmountField() {
+  if (!amountInputField) return;
+
+  const moveCaretToEnd = () => {
+    const inputLength = amountInputField.value.length;
+    if (typeof amountInputField.setSelectionRange === "function") {
+      amountInputField.setSelectionRange(inputLength, inputLength);
+    }
+  };
+
+  amountInputField.focus({ preventScroll: true });
+  moveCaretToEnd();
+
+  if (document.activeElement !== amountInputField) {
+    window.requestAnimationFrame(() => {
+      amountInputField.focus({ preventScroll: true });
+      moveCaretToEnd();
+    });
+  }
 }
 
 function resetFormDefaults() {
@@ -1485,11 +1517,11 @@ function showUpdateToast() {
 
 async function refreshCurrentView(options = {}) {
   const { silent = false } = options;
-  const originalLabel = timelineRefreshButton.textContent;
 
   if (!silent) {
     timelineRefreshButton.disabled = true;
-    timelineRefreshButton.textContent = "已刷新";
+    timelineRefreshButton.classList.add("is-refreshing");
+    timelineRefreshButton.setAttribute("aria-busy", "true");
   }
 
   if (state.mode === "cloud" && state.cloudService && state.cloudAuthUser) {
@@ -1504,7 +1536,8 @@ async function refreshCurrentView(options = {}) {
     });
 
     timelineRefreshButton.disabled = false;
-    timelineRefreshButton.textContent = originalLabel;
+    timelineRefreshButton.classList.remove("is-refreshing");
+    timelineRefreshButton.removeAttribute("aria-busy");
   }
 }
 

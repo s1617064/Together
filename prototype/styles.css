@@ -526,6 +526,15 @@ button {
   line-height: 1.5;
 }
 
+.ledger-version {
+  margin: 16px 2px 0;
+  color: rgba(107, 114, 128, 0.8);
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  text-align: right;
+}
+
 .ghost-button,
 .primary-button,
 .tabbar-button,
