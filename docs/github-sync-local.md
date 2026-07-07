@@ -2,7 +2,7 @@
 
 我已经给项目加了一个脚本：
 
-- [github-sync.sh](/Users/luna/Documents/Together/github-sync.sh)
+- [github-sync.sh](../github-sync.sh)
 
 它的目标是：
 
@@ -20,7 +20,7 @@ https://github.com/你的用户名/你的仓库名.git
 然后在项目目录运行：
 
 ```bash
-cd /Users/luna/Documents/Together
+cd <你的 Together 仓库目录>
 chmod +x ./github-sync.sh
 ./github-sync.sh init 你的_GitHub_仓库地址
 ```
@@ -43,9 +43,15 @@ chmod +x ./github-sync.sh
 以后我在本地帮你改完文件，你只需要运行：
 
 ```bash
-cd /Users/luna/Documents/Together
+cd <你的 Together 仓库目录>
 ./github-sync.sh sync
 ```
+
+在执行这一步前，请先确认：
+
+- 正式改动只发生在 `prototype/`
+- `prototype-draft/` 只是草稿，不作为上线来源
+- `.tmp-*`、`tmp/`、`outputs/` 只是本地临时目录
 
 如果你想自己写这次更新说明，也可以：
 
@@ -60,3 +66,13 @@ cd /Users/luna/Documents/Together
 ```
 
 同步成功后，GitHub Actions 会自动部署到 Firebase Hosting。
+
+## 当前目录约定
+
+为了避免“改了但不是正式版”的问题，当前项目统一约定：
+
+- 当前这份 Together 仓库根目录：唯一正式开发与发布目录
+- `prototype/`：唯一正式前端源目录
+- `prototype-draft/`、`.tmp-*`、`tmp/`、`outputs/`：本地草稿或临时目录
+
+如果你只是准备发布正式版，请优先检查 `prototype/` 下有没有你要的改动。

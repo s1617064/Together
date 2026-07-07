@@ -1,11 +1,12 @@
 #!/bin/zsh
 set -euo pipefail
 
-ROOT_DIR="/Users/luna/Documents/Together"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${0}")" && pwd)"
+ROOT_DIR="$SCRIPT_DIR"
 FIREBASE_PROJECT_ID="together-b80a9"
-RUNTIME_BIN="/Users/luna/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin"
+RUNTIME_BIN="${HOME}/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin"
 PNPM_BIN="$RUNTIME_BIN/pnpm"
-NODE_BIN_DIR="/Users/luna/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin"
+NODE_BIN_DIR="${HOME}/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin"
 DEFAULT_SERVICE_ACCOUNT="$ROOT_DIR/.firebase-service-account.json"
 FALLBACK_SERVICE_ACCOUNT=""
 

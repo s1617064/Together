@@ -2,9 +2,9 @@
 
 这份说明对应当前原型目录里的 Firebase 骨架：
 
-- [prototype/firebase-config.js](/Users/luna/Documents/Together/prototype/firebase-config.js)
-- [prototype/firebase-config.example.js](/Users/luna/Documents/Together/prototype/firebase-config.example.js)
-- [prototype/firebase-service.js](/Users/luna/Documents/Together/prototype/firebase-service.js)
+- [prototype/firebase-config.js](../prototype/firebase-config.js)
+- [prototype/firebase-config.example.js](../prototype/firebase-config.example.js)
+- [prototype/firebase-service.js](../prototype/firebase-service.js)
 
 ## 目标
 
@@ -48,7 +48,7 @@
 
 ### 4. 填配置文件
 
-把 [prototype/firebase-config.example.js](/Users/luna/Documents/Together/prototype/firebase-config.example.js) 的内容复制到 [prototype/firebase-config.js](/Users/luna/Documents/Together/prototype/firebase-config.js)，然后把这些值换成你自己的：
+把 [prototype/firebase-config.example.js](../prototype/firebase-config.example.js) 的内容复制到 [prototype/firebase-config.js](../prototype/firebase-config.js)，然后把这些值换成你自己的：
 
 - `apiKey`
 - `authDomain`
@@ -82,12 +82,12 @@
 1. 建 Firebase 项目
 2. 打开 `Email/Password`
 3. 建 Web App，拿到 `firebaseConfig`
-4. 把项目配置填进 [prototype/firebase-config.js](/Users/luna/Documents/Together/prototype/firebase-config.js)
+4. 把项目配置填进 [prototype/firebase-config.js](../prototype/firebase-config.js)
 
 填完之后：
 
 - 把 `enabled` 改成 `true`
-- 重新打开 [prototype/index.html](/Users/luna/Documents/Together/prototype/index.html)
+- 重新打开 [prototype/index.html](../prototype/index.html)
 
 如果配置没填完整，登录页现在会直接告诉你缺哪几项。
 
@@ -98,7 +98,7 @@
 1. Firebase Web App 的 `firebaseConfig`
 2. 你和宝要登录用的两个邮箱
 
-我拿到之后就可以直接帮你把 [prototype/firebase-config.js](/Users/luna/Documents/Together/prototype/firebase-config.js) 填好。
+我拿到之后就可以直接帮你把 [prototype/firebase-config.js](../prototype/firebase-config.js) 填好。
 
 ## 当前骨架已经做好的事
 
@@ -124,7 +124,7 @@
 
 你可以从这里起步：
 
-- [docs/firestore.rules.example](/Users/luna/Documents/Together/docs/firestore.rules.example)
+- [docs/firestore.rules.example](firestore.rules.example)
 
 不过当前前端骨架把成员文档写在：
 

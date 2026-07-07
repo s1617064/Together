@@ -4,8 +4,8 @@
 
 关键文件：
 
-- [firebase.json](/Users/luna/Documents/Together/firebase.json)
-- [.firebaserc](/Users/luna/Documents/Together/.firebaserc)
+- [firebase.json](../firebase.json)
+- [.firebaserc](../.firebaserc)
 
 ## 当前部署目标
 
@@ -28,7 +28,7 @@
 把下载下来的 JSON 放到这里：
 
 ```text
-/Users/luna/Documents/Together/.firebase-service-account.json
+<项目根目录>/.firebase-service-account.json
 ```
 
 这个文件已经被 `.gitignore` 忽略，不会被误提交。
@@ -38,14 +38,14 @@
 项目根目录里已经准备好了部署脚本，所以只需要运行：
 
 ```bash
-cd /Users/luna/Documents/Together
+cd <你的 Together 仓库目录>
 ./firebase-hosting.sh deploy
 ```
 
 如果你不想把 JSON 放在项目根目录，也可以显式指定路径：
 
 ```bash
-cd /Users/luna/Documents/Together
+cd <你的 Together 仓库目录>
 ./firebase-hosting.sh deploy --service-account /你的/JSON/完整路径.json
 ```
 
@@ -61,7 +61,7 @@ Firebase 官方文档里，Hosting 发布命令仍然是 `firebase deploy --only
 也就是说，认证文件准备好以后，直接执行：
 
 ```bash
-cd /Users/luna/Documents/Together
+cd <你的 Together 仓库目录>
 ./firebase-hosting.sh deploy
 ```
 

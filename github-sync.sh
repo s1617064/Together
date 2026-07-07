@@ -1,7 +1,8 @@
 #!/bin/zsh
 set -euo pipefail
 
-ROOT_DIR="/Users/luna/Documents/Together"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${0}")" && pwd)"
+ROOT_DIR="$SCRIPT_DIR"
 
 usage() {
   echo "用法："

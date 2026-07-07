@@ -44,7 +44,7 @@
 
 把这里的规则替换成：
 
-- [docs/firestore.rules.example](/Users/luna/Documents/Together/docs/firestore.rules.example)
+- [docs/firestore.rules.example](firestore.rules.example)
 
 核对结果应该是：
 
@@ -54,7 +54,7 @@
 
 本地文件：
 
-- [prototype/firebase-config.js](/Users/luna/Documents/Together/prototype/firebase-config.js)
+- [prototype/firebase-config.js](../prototype/firebase-config.js)
 
 核对结果应该是：
 

@@ -7,14 +7,14 @@
 
 相关文件：
 
-- [.github/workflows/firebase-hosting-live.yml](/Users/luna/Documents/Together/.github/workflows/firebase-hosting-live.yml)
-- [.github/workflows/firebase-hosting-preview.yml](/Users/luna/Documents/Together/.github/workflows/firebase-hosting-preview.yml)
+- [.github/workflows/firebase-hosting-live.yml](../.github/workflows/firebase-hosting-live.yml)
+- [.github/workflows/firebase-hosting-preview.yml](../.github/workflows/firebase-hosting-preview.yml)
 
 ## 你要做的 1 件准备
 
-把本地这个服务账号 JSON 的全部内容复制出来：
+把本地服务账号 JSON 的全部内容复制出来：
 
-- `/Users/luna/Documents/Together/together-b80a9-firebase-adminsdk-fbsvc-3dcdfd8868.json`
+- `<你的服务账号 JSON 文件>`
 
 后面会把它存进 GitHub 仓库密钥里，不要把这个文件上传到仓库。
 

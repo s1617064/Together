@@ -5,6 +5,37 @@
 - 一个可直接打开预览的静态原型，先把首页时间轴、共同记账、记账人标识跑通。
 - 一份偏落地的实施方案，重点围绕“两个人使用、能同步、费用尽量低”来设计。
 
+## 正式开发与发布目录
+
+当前唯一正式开发与发布目录是：
+
+- 当前这份 GitHub 本地仓库根目录
+
+在这个正式仓库里，请统一遵守：
+
+- `prototype/` 是唯一正式前端源目录，也是发布到 Firebase Hosting 的目录。
+- 需要上线、需要提交、需要部署的前端文件，只能以 `prototype/` 里的版本为准。
+
+这意味着：
+
+- 正式页面改动请只改 `prototype/index.html`、`prototype/styles.css`、`prototype/app.js` 以及 `prototype/` 下相关正式文件。
+- 如果需要做设计草稿、临时实验、对比版本，请放在本地临时目录，不要把它们当成正式发布源。
+
+## 本地草稿与临时目录约定
+
+下面这些目录如果出现在仓库根目录，默认视为本地工作区，不参与正式发布：
+
+- `prototype-draft/`
+  只用于草稿设计、试验版交互、对比稿。
+- `.tmp-*/`
+  只用于临时覆盖、比对、修复过程中的中转文件。
+- `tmp/`
+  只用于本地脚本和中间产物。
+- `outputs/`
+  只用于导出文件或预览产物。
+
+除非你明确要把它们转正，否则这些目录里的文件不应该作为上线依据。
+
 ## 我给你的建议
 
 第一版不要先做原生 iOS / Android 双端，而是先做 `PWA`。
@@ -30,43 +61,45 @@
 
 ## 目录说明
 
-- [prototype/index.html](/Users/luna/Documents/Together/prototype/index.html)
-  可直接打开的原型首页
-- [prototype/styles.css](/Users/luna/Documents/Together/prototype/styles.css)
-  原型样式
-- [prototype/app.js](/Users/luna/Documents/Together/prototype/app.js)
-  原型交互逻辑，支持本地演示和可选 Firebase 云端模式
-- [prototype/firebase-config.js](/Users/luna/Documents/Together/prototype/firebase-config.js)
-  Firebase 运行配置，默认关闭
-- [prototype/firebase-config.example.js](/Users/luna/Documents/Together/prototype/firebase-config.example.js)
+- [prototype/index.html](prototype/index.html)
+  正式版入口，也是唯一正式前端页面
+- [prototype/styles.css](prototype/styles.css)
+  正式版样式
+- [prototype/app.js](prototype/app.js)
+  正式版交互逻辑，支持本地演示和可选 Firebase 云端模式
+- [prototype/firebase-config.js](prototype/firebase-config.js)
+  正式版 Firebase 运行配置，默认关闭
+- [prototype/firebase-config.example.js](prototype/firebase-config.example.js)
   Firebase 配置示例
-- [prototype/firebase-service.js](/Users/luna/Documents/Together/prototype/firebase-service.js)
+- [prototype/firebase-service.js](prototype/firebase-service.js)
   Firebase Auth + Firestore 数据层
-- [docs/mvp-plan.md](/Users/luna/Documents/Together/docs/mvp-plan.md)
+- [docs/mvp-plan.md](docs/mvp-plan.md)
   产品方案、同步方案、费用控制建议
-- [docs/firestore.rules.example](/Users/luna/Documents/Together/docs/firestore.rules.example)
+- [docs/firestore.rules.example](docs/firestore.rules.example)
   两人共享账本的 Firestore 权限规则示例
-- [docs/firebase-live-setup.md](/Users/luna/Documents/Together/docs/firebase-live-setup.md)
+- [docs/firebase-live-setup.md](docs/firebase-live-setup.md)
   把当前原型切到真实登录和云同步的步骤
-- [docs/firebase-console-checklist.md](/Users/luna/Documents/Together/docs/firebase-console-checklist.md)
+- [docs/firebase-console-checklist.md](docs/firebase-console-checklist.md)
   Firebase 控制台逐项核对清单
-- [docs/firebase-hosting-deploy.md](/Users/luna/Documents/Together/docs/firebase-hosting-deploy.md)
+- [docs/firebase-hosting-deploy.md](docs/firebase-hosting-deploy.md)
   Firebase Hosting 部署步骤
-- [docs/github-hosting-setup.md](/Users/luna/Documents/Together/docs/github-hosting-setup.md)
+- [docs/github-hosting-setup.md](docs/github-hosting-setup.md)
   GitHub 自动发布到 Firebase Hosting 的步骤
-- [docs/mobile-readiness.md](/Users/luna/Documents/Together/docs/mobile-readiness.md)
+- [docs/mobile-readiness.md](docs/mobile-readiness.md)
   手机正式使用检查清单
 
 ## 怎么预览
 
-直接用浏览器打开 [prototype/index.html](/Users/luna/Documents/Together/prototype/index.html) 就可以看。
+直接打开 [prototype/index.html](prototype/index.html) 就是看正式版。
+
+如果只是做草稿设计或试验，请不要在正式目录里直接混入临时文件。
 
 如果不填 Firebase 配置，它会继续走本地演示模式。
 
 如果要打开真实登录和实时同步：
 
-1. 参考 [docs/firebase-live-setup.md](/Users/luna/Documents/Together/docs/firebase-live-setup.md)
-2. 把 [prototype/firebase-config.example.js](/Users/luna/Documents/Together/prototype/firebase-config.example.js) 里的内容填进 [prototype/firebase-config.js](/Users/luna/Documents/Together/prototype/firebase-config.js)
+1. 参考 [docs/firebase-live-setup.md](docs/firebase-live-setup.md)
+2. 把 [prototype/firebase-config.example.js](prototype/firebase-config.example.js) 里的内容填进 [prototype/firebase-config.js](prototype/firebase-config.js)
 3. 把 `enabled` 改成 `true`
 
 ## 下一步最适合做什么

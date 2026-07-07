@@ -4,3 +4,9 @@
 firebase-debug.log
 *.swp
 .DS_Store
+
+# Local-only draft and scratch work
+prototype-draft/
+.tmp-*/
+tmp/
+outputs/
