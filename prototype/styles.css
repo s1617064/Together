@@ -660,14 +660,6 @@ button {
   box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
-.timeline-top,
-.ledger-row-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
 .entry-heading {
   display: flex;
   align-items: baseline;
@@ -703,32 +695,6 @@ button {
   margin-top: 8px;
 }
 
-.tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: var(--surface-soft);
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.tag.member {
-  background: var(--green-soft);
-  color: var(--green-text);
-}
-
-.tag.member.member-dou {
-  background: var(--dou-soft);
-  color: var(--dou-text);
-}
-
-.tag.member.member-bao {
-  background: var(--bao-soft);
-  color: var(--bao-text);
-}
-
-.timeline-note,
 .empty-copy {
   margin: 10px 0 0;
   color: var(--muted);
@@ -790,21 +756,6 @@ button {
 .ledger-recorder-pill.member-bao {
   background: rgba(219, 39, 119, 0.1);
   color: var(--bao-text);
-}
-
-.mini-button {
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 7px 12px;
-  background: var(--surface-soft);
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.mini-button.danger {
-  color: #c2410c;
-  background: #fff7ed;
-  border-color: #fed7aa;
 }
 
 .expense-form {
@@ -1163,8 +1114,6 @@ button {
     font-size: 12px;
   }
 
-  .timeline-top,
-  .ledger-row-top,
   .panel-head {
     align-items: flex-start;
     flex-direction: column;

@@ -102,15 +102,10 @@ const currencyFormatter = new Intl.NumberFormat("zh-CN", {
 
 const loginScreen = document.querySelector("#login-screen");
 const loginTitle = document.querySelector("#login-title");
-const loginActions = document.querySelector("#login-actions");
-const loginModeNote = document.querySelector("#login-mode-note");
-const cloudAuthCard = document.querySelector("#cloud-auth-card");
 const cloudAuthCopy = document.querySelector("#cloud-auth-copy");
 const cloudAuthForm = document.querySelector("#cloud-auth-form");
 const cloudAuthFeedback = document.querySelector("#cloud-auth-feedback");
 const appShell = document.querySelector(".app-shell");
-const updateToast = document.querySelector("#update-toast");
-const updateReloadButton = document.querySelector("#update-reload-button");
 const sessionPill = document.querySelector(".session-pill");
 const currentUserLabel = document.querySelector("#current-user-label");
 const switchUserButton = document.querySelector("#switch-user");
@@ -140,12 +135,9 @@ const formTitle = document.querySelector("#form-title");
 const submitButton = document.querySelector("#submit-button");
 const cancelEditButton = document.querySelector("#cancel-edit-button");
 const tabButtons = document.querySelectorAll("[data-tab]");
-const openTabButtons = document.querySelectorAll("[data-open-tab]");
 const tabPanels = document.querySelectorAll("[data-tab-panel]");
 
 let swRegistration = null;
-let swIsReloading = false;
-let swShouldReloadForUpdate = false;
 
 if (state.mode === "demo") {
   state.currentUser = loadSession();
@@ -166,7 +158,6 @@ void bootstrap();
 async function bootstrap() {
   registerServiceWorker();
   bindEvents();
-  renderLoginActions();
   renderCloudAuthCard();
   renderCurrentUser();
   renderCategoryGrid();
@@ -214,19 +205,6 @@ function bindEvents() {
 
   timelineRefreshButton.addEventListener("click", async () => {
     await refreshCurrentView();
-  });
-
-  updateReloadButton?.addEventListener("click", () => {
-    if (!swRegistration?.waiting) {
-      updateToast?.classList.add("hidden");
-      swRegistration?.update().catch(() => {});
-      return;
-    }
-
-    swShouldReloadForUpdate = true;
-    updateReloadButton.disabled = true;
-    updateReloadButton.textContent = "更新中...";
-    swRegistration.waiting.postMessage({ type: "SKIP_WAITING" });
   });
 
   cloudAuthForm.addEventListener("submit", async (event) => {
@@ -309,12 +287,6 @@ function bindEvents() {
   tabButtons.forEach((button) => {
     button.addEventListener("click", () => {
       setActiveTab(button.dataset.tab);
-    });
-  });
-
-  openTabButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      setActiveTab(button.dataset.openTab);
     });
   });
 
@@ -525,6 +497,7 @@ function startDemoMode(memberKey) {
 }
 
 function renderApp() {
+  renderRefreshButtonState();
   syncLedgerFilters();
   renderLedgerControls();
   renderSummary();
@@ -535,18 +508,12 @@ function renderApp() {
   renderFormMode();
 }
 
-function renderLoginActions() {
-  if (!loginActions) return;
-  loginActions.innerHTML = "";
-}
-
 function renderCloudAuthCard() {
   const configStatus = getFirebaseConfigStatus();
 
   if (!configStatus.enabled) {
     cloudAuthForm.classList.add("hidden");
     cloudAuthCopy.textContent = "正式版登录暂时不可用，Firebase 还没有启用。";
-    if (loginModeNote) loginModeNote.textContent = "";
     hideCloudAuthFeedback();
     return;
   }
@@ -560,7 +527,6 @@ function renderCloudAuthCard() {
       );
     }
     cloudAuthCopy.textContent = `正式版登录还没配置完整。${missingParts.join("；")}。`;
-    if (loginModeNote) loginModeNote.textContent = "";
     showCloudAuthFeedback(
       "把上面的缺项补齐后，登录表单会自动出现。",
       true
@@ -570,7 +536,6 @@ function renderCloudAuthCard() {
 
   cloudAuthForm.classList.remove("hidden");
   cloudAuthCopy.textContent = "邮箱密码登录后，两个人会进入同一本共享账本并实时同步。";
-  if (loginModeNote) loginModeNote.textContent = "";
   hideCloudAuthFeedback();
 }
 
@@ -599,6 +564,18 @@ function syncLoginState() {
   loginTitle.textContent = state.cloudReady
     ? getCloudLoginTitle()
     : "正式版登录";
+}
+
+function renderRefreshButtonState() {
+  if (!timelineRefreshButton) return;
+
+  const isCloudMode = state.mode === "cloud";
+  const helpText = isCloudMode
+    ? "从共享账本拉取最新记录"
+    : "重新载入本机记录";
+
+  timelineRefreshButton.setAttribute("aria-label", helpText);
+  timelineRefreshButton.setAttribute("title", helpText);
 }
 
 function renderCategoryGrid() {
@@ -1578,77 +1555,70 @@ function registerServiceWorker() {
       .register("./service-worker.js")
       .then((registration) => {
         swRegistration = registration;
-        bindServiceWorkerLifecycle(registration);
         return registration.update().catch(() => {});
       })
       .catch(() => {});
   });
 }
 
-function bindServiceWorkerLifecycle(registration) {
-  if (registration.waiting) {
-    showUpdateToast();
-  }
-
-  registration.addEventListener("updatefound", () => {
-    const installingWorker = registration.installing;
-    if (!installingWorker) {
-      return;
-    }
-
-    installingWorker.addEventListener("statechange", () => {
-      if (
-        installingWorker.state === "installed" &&
-        navigator.serviceWorker.controller
-      ) {
-        showUpdateToast();
-      }
-    });
-  });
-
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (swIsReloading || !swShouldReloadForUpdate) {
-      return;
-    }
-
-    swIsReloading = true;
-    window.location.reload();
-  });
-}
-
-function showUpdateToast() {
-  if (!updateToast || !updateReloadButton) {
-    return;
-  }
-
-  updateReloadButton.disabled = false;
-  updateReloadButton.textContent = "立即更新";
-  updateToast.classList.remove("hidden");
-}
-
 async function refreshCurrentView(options = {}) {
   const { silent = false } = options;
+  const isCloudMode = state.mode === "cloud";
+  const canRefreshCloud = Boolean(state.cloudService && state.cloudAuthUser);
+  let shouldStopWithDelay = !silent;
 
   if (!silent) {
     timelineRefreshButton.disabled = true;
     timelineRefreshButton.classList.add("is-refreshing");
     timelineRefreshButton.setAttribute("aria-busy", "true");
+    hideCloudAuthFeedback();
   }
 
-  if (state.mode === "cloud" && state.cloudService && state.cloudAuthUser) {
-    subscribeCloudExpenses();
-  }
+  try {
+    if (isCloudMode) {
+      if (!canRefreshCloud) {
+        if (!silent) {
+          showCloudAuthFeedback("共享账本还在连接中，暂时不能手动刷新。", true);
+        }
+        return;
+      }
 
-  renderApp();
+      if (!silent) {
+        showTimelineFeedback("正在从共享账本检查最新记录…");
+      }
 
-  if (!silent) {
-    await new Promise((resolve) => {
-      window.setTimeout(resolve, 700);
-    });
+      const expenses = await state.cloudService.refreshExpenses();
+      state.expenses = expenses.sort(sortBySpentAtDesc);
+      persistCloudExpensesCache();
+      renderApp();
 
-    timelineRefreshButton.disabled = false;
-    timelineRefreshButton.classList.remove("is-refreshing");
-    timelineRefreshButton.removeAttribute("aria-busy");
+      if (!silent) {
+        showTimelineFeedback("已从共享账本拉取最新记录。");
+      }
+    } else {
+      state.expenses = loadLocalExpenses();
+      renderApp();
+
+      if (!silent) {
+        showTimelineFeedback("已重新载入本机记录。");
+      }
+    }
+  } catch (error) {
+    renderApp();
+    if (!silent) {
+      showCloudAuthFeedback(`刷新失败：${error.message || "请稍后再试。"}`, true);
+    }
+  } finally {
+    renderRefreshButtonState();
+    if (shouldStopWithDelay) {
+      await new Promise((resolve) => {
+        window.setTimeout(resolve, 700);
+      });
+
+      timelineRefreshButton.disabled = false;
+      timelineRefreshButton.classList.remove("is-refreshing");
+      timelineRefreshButton.removeAttribute("aria-busy");
+    }
   }
 }
 

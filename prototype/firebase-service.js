@@ -69,6 +69,11 @@ async function createFirebaseContext() {
   const db = firestoreModule.getFirestore(app);
   const bookId = firebaseRuntimeConfig.sharedBookId;
   const memberTemplates = firebaseRuntimeConfig.members;
+  const expensesRef = firestoreModule.collection(db, "books", bookId, "expenses");
+  const expensesQuery = firestoreModule.query(
+    expensesRef,
+    firestoreModule.orderBy("spentAt", "desc")
+  );
 
   function getMemberForEmail(email) {
     const normalizedEmail = String(email || "").trim().toLowerCase();
@@ -256,17 +261,6 @@ async function createFirebaseContext() {
       });
     },
     watchExpenses(callback, onError) {
-      const expensesRef = firestoreModule.collection(
-        db,
-        "books",
-        bookId,
-        "expenses"
-      );
-      const expensesQuery = firestoreModule.query(
-        expensesRef,
-        firestoreModule.orderBy("spentAt", "desc")
-      );
-
       return firestoreModule.onSnapshot(
         expensesQuery,
         (snapshot) => {
@@ -276,6 +270,14 @@ async function createFirebaseContext() {
           onError?.(new Error(getReadableFirestoreError(error)));
         }
       );
+    },
+    async refreshExpenses() {
+      try {
+        const snapshot = await firestoreModule.getDocsFromServer(expensesQuery);
+        return snapshot.docs.map(normalizeExpense);
+      } catch (error) {
+        throw new Error(getReadableFirestoreError(error));
+      }
     },
     async saveExpense(expense, user, member) {
       const docRef = expense.id
