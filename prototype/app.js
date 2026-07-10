@@ -87,6 +87,8 @@ const state = {
   cloudAuthResolved: false,
   cloudSyncStatus: "idle",
   hasBootstrappedCloudCache: false,
+  cloudStatusOverride: null,
+  cloudStatusOverrideTimer: null,
   ledgerMonth: getCurrentMonthKey(new Date().toISOString()),
   ledgerMemberFilter: "all",
   ledgerCategoryFilter: "all",
@@ -593,6 +595,13 @@ function renderCurrentUser() {
 
 function renderCloudStatusBanner() {
   if (!cloudStatusBanner) return;
+
+  if (state.cloudStatusOverride) {
+    cloudStatusBanner.textContent = state.cloudStatusOverride.message;
+    cloudStatusBanner.className = `cloud-status-banner is-visible ${state.cloudStatusOverride.tone}`;
+    cloudStatusBanner.setAttribute("aria-hidden", "false");
+    return;
+  }
 
   if (state.mode !== "cloud") {
     cloudStatusBanner.textContent = "";
@@ -1577,8 +1586,8 @@ function getCloudStatusBannerState() {
     return {
       tone: "success",
       message: state.hasBootstrappedCloudCache
-        ? "已先打开上次账本，正在恢复登录和云同步。"
-        : "正在恢复登录和共享账本连接。",
+        ? "已打开上次账本，正在恢复同步"
+        : "正在恢复登录",
     };
   }
 
@@ -1586,15 +1595,15 @@ function getCloudStatusBannerState() {
     return {
       tone: "success",
       message: state.hasBootstrappedCloudCache
-        ? "已先显示上次账本，正在确认成员身份。"
-        : "正在确认你是不是这本共享账本的成员。",
+        ? "已显示上次账本，正在确认身份"
+        : "正在确认身份",
     };
   }
 
   if (state.cloudSyncStatus === "binding") {
     return {
       tone: "success",
-      message: "正在完成成员绑定并接入共享账本。",
+      message: "正在接入共享账本",
     };
   }
 
@@ -1602,19 +1611,37 @@ function getCloudStatusBannerState() {
     return {
       tone: "success",
       message: state.hasBootstrappedCloudCache
-        ? "已先显示上次账本，正在连接最新共享数据。"
-        : "正在连接共享账本并同步最新记录。",
+        ? "已显示上次账本，正在同步最新数据"
+        : "正在同步最新数据",
     };
   }
 
   if (state.cloudSyncStatus === "error") {
     return {
       tone: "error",
-      message: "共享账本连接失败。你可以先看当前内容，稍后再重试。",
+      message: "共享账本连接失败",
     };
   }
 
   return null;
+}
+
+function showCloudStatusOverride(message, tone = "success", autoHideMs = 0) {
+  if (state.cloudStatusOverrideTimer) {
+    window.clearTimeout(state.cloudStatusOverrideTimer);
+    state.cloudStatusOverrideTimer = null;
+  }
+
+  state.cloudStatusOverride = { message, tone };
+  renderCloudStatusBanner();
+
+  if (autoHideMs > 0) {
+    state.cloudStatusOverrideTimer = window.setTimeout(() => {
+      state.cloudStatusOverride = null;
+      state.cloudStatusOverrideTimer = null;
+      renderCloudStatusBanner();
+    }, autoHideMs);
+  }
 }
 
 function escapeHtml(value) {
@@ -1684,13 +1711,17 @@ async function refreshCurrentView(options = {}) {
     if (isCloudMode) {
       if (!canRefreshCloud) {
         if (!silent) {
-          showCloudAuthFeedback("共享账本还在连接中，暂时不能手动刷新。", true);
+          showCloudStatusOverride(
+            "共享账本连接中，暂时不能刷新",
+            "error",
+            2200
+          );
         }
         return;
       }
 
       if (!silent) {
-        showTimelineFeedback("正在从共享账本检查最新记录…");
+        showCloudStatusOverride("正在检查最新记录");
       }
 
       const expenses = await state.cloudService.refreshExpenses();
@@ -1699,20 +1730,28 @@ async function refreshCurrentView(options = {}) {
       renderApp();
 
       if (!silent) {
-        showTimelineFeedback("已从共享账本拉取最新记录。");
+        showCloudStatusOverride("已刷新最新记录", "success", 1800);
       }
     } else {
+      if (!silent) {
+        showCloudStatusOverride("正在重新载入记录");
+      }
+
       state.expenses = loadLocalExpenses();
       renderApp();
 
       if (!silent) {
-        showTimelineFeedback("已重新载入本机记录。");
+        showCloudStatusOverride("已重新载入记录", "success", 1800);
       }
     }
   } catch (error) {
     renderApp();
     if (!silent) {
-      showCloudAuthFeedback(`刷新失败：${error.message || "请稍后再试。"}`, true);
+      showCloudStatusOverride(
+        `刷新失败：${error.message || "请稍后重试"}`,
+        "error",
+        2400
+      );
     }
   } finally {
     renderRefreshButtonState();
