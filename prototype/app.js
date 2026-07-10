@@ -106,6 +106,7 @@ const loginTitle = document.querySelector("#login-title");
 const cloudAuthCopy = document.querySelector("#cloud-auth-copy");
 const cloudAuthForm = document.querySelector("#cloud-auth-form");
 const cloudAuthFeedback = document.querySelector("#cloud-auth-feedback");
+const cloudStatusBanner = document.querySelector("#cloud-status-banner");
 const appShell = document.querySelector(".app-shell");
 const sessionPill = document.querySelector(".session-pill");
 const currentUserLabel = document.querySelector("#current-user-label");
@@ -531,6 +532,7 @@ function startDemoMode(memberKey) {
 }
 
 function renderApp() {
+  renderCloudStatusBanner();
   renderRefreshButtonState();
   syncLedgerFilters();
   renderLedgerControls();
@@ -587,6 +589,29 @@ function renderCurrentUser() {
     state.currentProfile ? `切换当前记账人，当前为${state.currentProfile.name}` : "登录共享账本"
   );
   sessionPill.className = `session-pill ${accentClass}`;
+}
+
+function renderCloudStatusBanner() {
+  if (!cloudStatusBanner) return;
+
+  if (state.mode !== "cloud") {
+    cloudStatusBanner.textContent = "";
+    cloudStatusBanner.className = "cloud-status-banner";
+    cloudStatusBanner.setAttribute("aria-hidden", "true");
+    return;
+  }
+
+  const status = getCloudStatusBannerState();
+  if (!status) {
+    cloudStatusBanner.textContent = "";
+    cloudStatusBanner.className = "cloud-status-banner";
+    cloudStatusBanner.setAttribute("aria-hidden", "true");
+    return;
+  }
+
+  cloudStatusBanner.textContent = status.message;
+  cloudStatusBanner.className = `cloud-status-banner is-visible ${status.tone}`;
+  cloudStatusBanner.setAttribute("aria-hidden", "false");
 }
 
 function syncLoginState() {
@@ -1545,6 +1570,51 @@ function getCloudLoginTitle() {
   };
 
   return titles[state.cloudSyncStatus] || "登录共享账本";
+}
+
+function getCloudStatusBannerState() {
+  if (!state.cloudAuthResolved) {
+    return {
+      tone: "success",
+      message: state.hasBootstrappedCloudCache
+        ? "已先打开上次账本，正在恢复登录和云同步。"
+        : "正在恢复登录和共享账本连接。",
+    };
+  }
+
+  if (state.cloudSyncStatus === "authenticating") {
+    return {
+      tone: "success",
+      message: state.hasBootstrappedCloudCache
+        ? "已先显示上次账本，正在确认成员身份。"
+        : "正在确认你是不是这本共享账本的成员。",
+    };
+  }
+
+  if (state.cloudSyncStatus === "binding") {
+    return {
+      tone: "success",
+      message: "正在完成成员绑定并接入共享账本。",
+    };
+  }
+
+  if (state.cloudSyncStatus === "subscribing") {
+    return {
+      tone: "success",
+      message: state.hasBootstrappedCloudCache
+        ? "已先显示上次账本，正在连接最新共享数据。"
+        : "正在连接共享账本并同步最新记录。",
+    };
+  }
+
+  if (state.cloudSyncStatus === "error") {
+    return {
+      tone: "error",
+      message: "共享账本连接失败。你可以先看当前内容，稍后再重试。",
+    };
+  }
+
+  return null;
 }
 
 function escapeHtml(value) {

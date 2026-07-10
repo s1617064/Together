@@ -220,6 +220,46 @@ button {
   font-weight: 700;
 }
 
+.cloud-status-banner {
+  position: fixed;
+  top: max(10px, env(safe-area-inset-top));
+  left: 50%;
+  z-index: 30;
+  width: min(calc(100vw - 24px), 520px);
+  padding: 12px 14px;
+  border: 1px solid var(--accent-line);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), var(--accent-soft));
+  color: var(--accent-deep);
+  font-size: 13px;
+  line-height: 1.45;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
+  transform: translate(-50%, calc(-100% - 16px));
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    transform 220ms ease,
+    opacity 180ms ease,
+    visibility 0ms linear 220ms;
+}
+
+.cloud-status-banner.is-visible {
+  transform: translate(-50%, 0);
+  opacity: 1;
+  visibility: visible;
+  transition:
+    transform 260ms ease,
+    opacity 200ms ease,
+    visibility 0ms linear 0ms;
+}
+
+.cloud-status-banner.error {
+  border-color: rgba(180, 35, 24, 0.18);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), #fff3f1);
+  color: #b42318;
+}
+
 .main-content {
   flex: 1;
 }
