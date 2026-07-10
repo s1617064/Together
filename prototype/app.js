@@ -559,7 +559,7 @@ function syncLoginState() {
   const shouldHideLogin =
     state.mode === "demo"
       ? Boolean(state.currentUser)
-      : Boolean(state.currentUser) && state.cloudSyncStatus === "ready";
+      : !state.cloudAuthResolved || Boolean(state.currentUser);
   loginScreen.classList.toggle("visible", !shouldHideLogin);
   loginTitle.textContent = state.cloudReady
     ? getCloudLoginTitle()

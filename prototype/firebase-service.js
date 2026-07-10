@@ -66,6 +66,7 @@ async function createFirebaseContext() {
 
   const app = initializeApp(firebaseRuntimeConfig.project);
   const auth = authModule.getAuth(app);
+  await authModule.setPersistence(auth, authModule.browserLocalPersistence);
   const db = firestoreModule.getFirestore(app);
   const bookId = firebaseRuntimeConfig.sharedBookId;
   const memberTemplates = firebaseRuntimeConfig.members;
