@@ -222,18 +222,18 @@ button {
 
 .cloud-status-banner {
   position: fixed;
-  top: calc(max(8px, env(safe-area-inset-top)) + 18px);
+  top: calc(max(8px, env(safe-area-inset-top)) + 16px);
   left: 50%;
   z-index: 30;
   width: min(240px, calc(100vw - 152px));
   max-width: calc(100vw - 24px);
-  padding: 9px 12px;
+  padding: 6px 11px;
   border: 1px solid var(--accent-line);
-  border-radius: 18px;
+  border-radius: 14px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), var(--accent-soft));
   color: var(--accent-deep);
-  font-size: 12px;
-  line-height: 1.2;
+  font-size: 11px;
+  line-height: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
