@@ -86,6 +86,7 @@ const state = {
   cloudUnsubscribe: null,
   cloudAuthResolved: false,
   cloudSyncStatus: "idle",
+  hasBootstrappedCloudCache: false,
   ledgerMonth: getCurrentMonthKey(new Date().toISOString()),
   ledgerMemberFilter: "all",
   ledgerCategoryFilter: "all",
@@ -147,10 +148,16 @@ if (state.mode === "demo") {
   state.cloudSyncStatus = "ready";
 } else {
   const cachedCloudMember = loadCloudMemberCache();
+  const cachedCloudExpenses = loadCloudExpensesCache();
   state.currentUser = cachedCloudMember?.key ?? null;
   state.currentProfile = cachedCloudMember;
-  state.expenses = loadCloudExpensesCache();
-  state.cloudSyncStatus = "idle";
+  state.expenses = cachedCloudExpenses;
+  state.hasBootstrappedCloudCache = Boolean(
+    cachedCloudMember || cachedCloudExpenses.length
+  );
+  state.cloudSyncStatus = state.hasBootstrappedCloudCache
+    ? "subscribing"
+    : "idle";
 }
 
 void bootstrap();
@@ -380,6 +387,7 @@ function attachCloudAuthWatcher() {
       state.currentUser = null;
       state.currentProfile = null;
       state.cloudAuthUser = null;
+      state.hasBootstrappedCloudCache = false;
       clearCloudMemberCache();
       renderCurrentUser();
       renderApp();
@@ -399,6 +407,7 @@ function attachCloudAuthWatcher() {
         state.currentUser = null;
         state.currentProfile = null;
         state.cloudAuthUser = null;
+        state.hasBootstrappedCloudCache = false;
         clearCloudMemberCache();
         renderCurrentUser();
         renderApp();
@@ -438,6 +447,7 @@ function attachCloudAuthWatcher() {
     state.currentUser = member.key;
     state.currentProfile = member;
     state.cloudAuthUser = user;
+    state.hasBootstrappedCloudCache = false;
     persistAppMode();
     persistCloudMemberCache(member);
     renderCurrentUser();
@@ -458,10 +468,15 @@ function subscribeCloudExpenses() {
   const wasReady = state.cloudSyncStatus === "ready";
   state.cloudSyncStatus = "subscribing";
 
+  if (state.expenses.length && !wasReady) {
+    void refreshCloudExpensesInBackground();
+  }
+
   state.cloudUnsubscribe = state.cloudService.watchExpenses(
     (expenses) => {
       state.expenses = expenses.sort(sortBySpentAtDesc);
       state.cloudSyncStatus = "ready";
+      state.hasBootstrappedCloudCache = false;
       persistCloudExpensesCache();
       renderApp();
       syncLoginState();
@@ -477,6 +492,25 @@ function subscribeCloudExpenses() {
       showCloudAuthFeedback(`同步账本失败：${error.message}`, true);
     }
   );
+}
+
+async function refreshCloudExpensesInBackground() {
+  if (!state.cloudService || !state.cloudAuthUser) return;
+
+  try {
+    const expenses = await state.cloudService.refreshExpenses();
+
+    if (state.cloudSyncStatus !== "subscribing") {
+      return;
+    }
+
+    state.expenses = expenses.sort(sortBySpentAtDesc);
+    state.hasBootstrappedCloudCache = false;
+    persistCloudExpensesCache();
+    renderApp();
+  } catch {
+    // Keep showing the cached ledger until realtime sync resolves.
+  }
 }
 
 function startDemoMode(memberKey) {
@@ -559,7 +593,9 @@ function syncLoginState() {
   const shouldHideLogin =
     state.mode === "demo"
       ? Boolean(state.currentUser)
-      : !state.cloudAuthResolved || Boolean(state.currentUser);
+      : !state.cloudAuthResolved ||
+        Boolean(state.currentUser) ||
+        state.hasBootstrappedCloudCache;
   loginScreen.classList.toggle("visible", !shouldHideLogin);
   loginTitle.textContent = state.cloudReady
     ? getCloudLoginTitle()
