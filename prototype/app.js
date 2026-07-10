@@ -89,6 +89,7 @@ const state = {
   hasBootstrappedCloudCache: false,
   cloudStatusOverride: null,
   cloudStatusOverrideTimer: null,
+  isSavingExpense: false,
   ledgerMonth: getCurrentMonthKey(new Date().toISOString()),
   ledgerMemberFilter: "all",
   ledgerCategoryFilter: "all",
@@ -303,6 +304,10 @@ function bindEvents() {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
+    if (state.isSavingExpense) {
+      return;
+    }
+
     if (!state.currentUser || !state.currentProfile) {
       syncLoginState();
       return;
@@ -338,6 +343,8 @@ function bindEvents() {
       updatedAt: new Date().toISOString(),
     };
 
+    setExpenseSubmitPending(true);
+
     if (state.mode === "cloud" && state.cloudService && state.cloudAuthUser) {
       try {
         await state.cloudService.saveExpense(
@@ -346,29 +353,35 @@ function bindEvents() {
           state.currentProfile
         );
         exitEditMode();
-        showTimelineFeedback("已记下这笔，回到首页了。");
         setActiveTab("timeline");
+        showCloudStatusOverride("记账完成啦", "success", 1800);
         return;
       } catch (error) {
         showCloudAuthFeedback(`保存失败：${error.message}`, true);
         return;
+      } finally {
+        setExpenseSubmitPending(false);
       }
     }
 
-    if (state.editingExpenseId) {
-      state.expenses = state.expenses
-        .map((item) => (item.id === state.editingExpenseId ? expense : item))
-        .sort(sortBySpentAtDesc);
-    } else {
-      expense.id = crypto.randomUUID();
-      state.expenses = [expense, ...state.expenses].sort(sortBySpentAtDesc);
-    }
+    try {
+      if (state.editingExpenseId) {
+        state.expenses = state.expenses
+          .map((item) => (item.id === state.editingExpenseId ? expense : item))
+          .sort(sortBySpentAtDesc);
+      } else {
+        expense.id = crypto.randomUUID();
+        state.expenses = [expense, ...state.expenses].sort(sortBySpentAtDesc);
+      }
 
-    persistLocalExpenses();
-    renderApp();
-    exitEditMode();
-    showTimelineFeedback("已记下这笔，回到首页了。");
-    setActiveTab("timeline");
+      persistLocalExpenses();
+      renderApp();
+      exitEditMode();
+      setActiveTab("timeline");
+      showCloudStatusOverride("记账完成啦", "success", 1800);
+    } finally {
+      setExpenseSubmitPending(false);
+    }
   });
 
   cancelEditButton.addEventListener("click", () => {
@@ -974,6 +987,9 @@ function setActiveTab(tab) {
   renderCloudStatusBanner();
 
   if (tab === "add") {
+    if (!state.editingExpenseId) {
+      setDefaultDateTime();
+    }
     focusAmountField();
   }
 }
@@ -1010,8 +1026,21 @@ function renderFormMode() {
   const isEditing = Boolean(state.editingExpenseId);
   formKicker.textContent = isEditing ? "编辑记录" : "新增记录";
   formTitle.textContent = isEditing ? "修改这笔账" : "记下这次开销";
-  submitButton.textContent = isEditing ? "保存修改" : "确认记下";
+  submitButton.textContent = state.isSavingExpense
+    ? isEditing
+      ? "保存中..."
+      : "记录中..."
+    : isEditing
+      ? "保存修改"
+      : "确认记下";
+  submitButton.disabled = state.isSavingExpense;
+  submitButton.setAttribute("aria-busy", state.isSavingExpense ? "true" : "false");
   cancelEditButton.classList.toggle("hidden", !isEditing);
+}
+
+function setExpenseSubmitPending(isPending) {
+  state.isSavingExpense = isPending;
+  renderFormMode();
 }
 
 function handleExpenseActionClick(event) {
@@ -1595,8 +1624,8 @@ function getCloudStatusBannerState() {
     return {
       tone: "success",
       message: state.hasBootstrappedCloudCache
-        ? "已打开上次账本，正在恢复同步"
-        : "正在恢复登录",
+        ? "先把上次账本捞出来啦"
+        : "正在回来找你的账本",
     };
   }
 
@@ -1604,15 +1633,15 @@ function getCloudStatusBannerState() {
     return {
       tone: "success",
       message: state.hasBootstrappedCloudCache
-        ? "已显示上次账本，正在确认身份"
-        : "正在确认身份",
+        ? "先把账本打开，马上认出你"
+        : "正在确认你的身份哦",
     };
   }
 
   if (state.cloudSyncStatus === "binding") {
     return {
       tone: "success",
-      message: "正在接入共享账本",
+      message: "正在接通共享账本",
     };
   }
 
@@ -1620,15 +1649,15 @@ function getCloudStatusBannerState() {
     return {
       tone: "success",
       message: state.hasBootstrappedCloudCache
-        ? "已显示上次账本，正在同步最新数据"
-        : "正在同步最新数据",
+        ? "先打开账本，最新记录马上到"
+        : "最新记录正在飞奔过来",
     };
   }
 
   if (state.cloudSyncStatus === "error") {
     return {
       tone: "error",
-      message: "共享账本连接失败",
+      message: "共享账本暂时掉线啦",
     };
   }
 
@@ -1721,7 +1750,7 @@ async function refreshCurrentView(options = {}) {
       if (!canRefreshCloud) {
         if (!silent) {
           showCloudStatusOverride(
-            "共享账本连接中，暂时不能刷新",
+            "共享账本正在努力连线中",
             "error",
             2200
           );
@@ -1730,7 +1759,7 @@ async function refreshCurrentView(options = {}) {
       }
 
       if (!silent) {
-        showCloudStatusOverride("正在检查最新记录");
+        showCloudStatusOverride("马上帮你刷新");
       }
 
       const expenses = await state.cloudService.refreshExpenses();
@@ -1739,25 +1768,25 @@ async function refreshCurrentView(options = {}) {
       renderApp();
 
       if (!silent) {
-        showCloudStatusOverride("已刷新最新记录", "success", 1800);
+        showCloudStatusOverride("最新记录到啦", "success", 1800);
       }
     } else {
       if (!silent) {
-        showCloudStatusOverride("正在重新载入记录");
+        showCloudStatusOverride("正在重新整理一下");
       }
 
       state.expenses = loadLocalExpenses();
       renderApp();
 
       if (!silent) {
-        showCloudStatusOverride("已重新载入记录", "success", 1800);
+        showCloudStatusOverride("记录已经收拾好啦", "success", 1800);
       }
     }
   } catch (error) {
     renderApp();
     if (!silent) {
       showCloudStatusOverride(
-        `刷新失败：${error.message || "请稍后重试"}`,
+        `这次扑空啦，${error.message || "再试一次吧"}`,
         "error",
         2400
       );

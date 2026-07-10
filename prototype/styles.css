@@ -222,25 +222,26 @@ button {
 
 .cloud-status-banner {
   margin: 0 0 12px;
-  padding: 10px 12px;
-  border: 1px solid var(--accent-line);
-  border-radius: 14px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), var(--accent-soft));
-  color: var(--accent-deep);
+  padding: 9px 12px;
+  border: 1px solid rgba(37, 99, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(237, 243, 255, 0.72);
+  color: rgba(28, 78, 216, 0.9);
   font-size: 12px;
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
-  transform: translateY(-6px);
+  box-shadow: none;
+  transform: translateY(-4px);
   opacity: 0;
   transition:
     transform 180ms ease,
     opacity 160ms ease,
     margin 180ms ease,
     padding 180ms ease,
-    border-color 180ms ease;
+    border-color 180ms ease,
+    background-color 180ms ease;
 }
 
 .cloud-status-banner.is-visible {
@@ -258,8 +259,8 @@ button {
 }
 
 .cloud-status-banner.error {
-  border-color: rgba(180, 35, 24, 0.18);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), #fff3f1);
+  border-color: rgba(180, 35, 24, 0.12);
+  background: rgba(255, 243, 241, 0.88);
   color: #b42318;
 }
 
