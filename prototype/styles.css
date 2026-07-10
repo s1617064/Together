@@ -190,6 +190,10 @@ button {
     calc(92px + max(10px, env(safe-area-inset-bottom)));
 }
 
+.app-shell.has-cloud-banner {
+  padding-top: calc(max(12px, env(safe-area-inset-top)) + 28px);
+}
+
 .app-shell.member-dou {
   --accent: #2563eb;
   --accent-deep: #1d4ed8;
