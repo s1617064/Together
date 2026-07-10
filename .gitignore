@@ -10,3 +10,7 @@ prototype-draft/
 .tmp-*/
 tmp/
 outputs/
+
+# Merge leftovers and local patch artifacts
+*.orig
+*.rej
