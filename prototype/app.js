@@ -595,12 +595,18 @@ function renderCurrentUser() {
 
 function renderCloudStatusBanner() {
   if (!cloudStatusBanner) return;
+  const activePanel = document.querySelector(
+    '.tab-panel.active .panel'
+  );
+
+  if (activePanel && cloudStatusBanner.parentElement !== activePanel) {
+    activePanel.prepend(cloudStatusBanner);
+  }
 
   if (state.cloudStatusOverride) {
     cloudStatusBanner.textContent = state.cloudStatusOverride.message;
     cloudStatusBanner.className = `cloud-status-banner is-visible ${state.cloudStatusOverride.tone}`;
     cloudStatusBanner.setAttribute("aria-hidden", "false");
-    appShell.classList.add("has-cloud-banner");
     return;
   }
 
@@ -608,7 +614,6 @@ function renderCloudStatusBanner() {
     cloudStatusBanner.textContent = "";
     cloudStatusBanner.className = "cloud-status-banner";
     cloudStatusBanner.setAttribute("aria-hidden", "true");
-    appShell.classList.remove("has-cloud-banner");
     return;
   }
 
@@ -617,14 +622,12 @@ function renderCloudStatusBanner() {
     cloudStatusBanner.textContent = "";
     cloudStatusBanner.className = "cloud-status-banner";
     cloudStatusBanner.setAttribute("aria-hidden", "true");
-    appShell.classList.remove("has-cloud-banner");
     return;
   }
 
   cloudStatusBanner.textContent = status.message;
   cloudStatusBanner.className = `cloud-status-banner is-visible ${status.tone}`;
   cloudStatusBanner.setAttribute("aria-hidden", "false");
-  appShell.classList.add("has-cloud-banner");
 }
 
 function syncLoginState() {
@@ -967,6 +970,8 @@ function setActiveTab(tab) {
   tabPanels.forEach((panel) => {
     panel.classList.toggle("active", panel.dataset.tabPanel === tab);
   });
+
+  renderCloudStatusBanner();
 
   if (tab === "add") {
     focusAmountField();
