@@ -94,19 +94,6 @@ async function createFirebaseContext() {
     };
   }
 
-  function isOfflineError(error) {
-    const code = String(error?.code || "").toLowerCase();
-    const message = String(error?.message || "").toLowerCase();
-
-    return (
-      code.includes("unavailable") ||
-      code.includes("offline") ||
-      message.includes("client is offline") ||
-      message.includes("offline") ||
-      message.includes("network")
-    );
-  }
-
   async function getMemberForUser(user) {
     const memberRef = firestoreModule.doc(
       db,
@@ -185,6 +172,19 @@ async function createFirebaseContext() {
     };
   }
 
+  function getReadableFirestoreError(error) {
+    const code = String(error?.code || "");
+    const messages = {
+      "permission-denied":
+        "当前账号还没有访问这本账本的权限，请检查 Firestore 规则和成员绑定。",
+      unavailable: "当前网络不可用，请稍后再试。",
+      unauthenticated: "登录状态已失效，请重新登录。",
+      "failed-precondition": "Firestore 还没有准备好，请检查数据库配置。",
+    };
+
+    return messages[code] || error?.message || "请检查 Firestore 规则。";
+  }
+
   return {
     auth,
     async signIn(email, password) {
@@ -197,17 +197,33 @@ async function createFirebaseContext() {
       return authModule.signOut(auth);
     },
     watchAuth(callback) {
+      let authEventId = 0;
+
       return authModule.onAuthStateChanged(auth, async (user) => {
+        const eventId = ++authEventId;
+        const isStale = () => eventId !== authEventId;
+
         if (!user) {
-          callback({ user: null, member: null, error: "" });
+          callback({ status: "signed-out", user: null, member: null, error: "" });
           return;
         }
 
+        callback({
+          status: "resolving-member",
+          user,
+          member: null,
+          error: "",
+        });
+
         try {
           const { member, needsMembershipSync } = await getMemberForUser(user);
+          if (isStale()) return;
+
           if (!member) {
             await authModule.signOut(auth);
+            if (isStale()) return;
             callback({
+              status: "error",
               user: null,
               member: null,
               error: "这个账号还没有加入共享账本，请先用已加入的设备完成成员绑定。",
@@ -215,32 +231,31 @@ async function createFirebaseContext() {
             return;
           }
 
-          callback({ user, member, error: "" });
-
           if (needsMembershipSync) {
-            await ensureBookMembership(user, member);
-          }
-        } catch (error) {
-          if (isOfflineError(error)) {
             callback({
+              status: "syncing-member",
               user,
-              member: null,
-              error: "网络有点慢，先为你打开上次内容，连上后会自动更新。",
-              offline: true,
+              member,
+              error: "",
             });
-            return;
+            await ensureBookMembership(user, member);
+            if (isStale()) return;
           }
 
+          callback({ status: "ready", user, member, error: "" });
+        } catch (error) {
           await authModule.signOut(auth).catch(() => {});
+          if (isStale()) return;
           callback({
+            status: "error",
             user: null,
             member: null,
-            error: "暂时没连上共享账本，请稍后再试。",
+            error: `同步账本失败：${getReadableFirestoreError(error)}`,
           });
         }
       });
     },
-    watchExpenses(callback) {
+    watchExpenses(callback, onError) {
       const expensesRef = firestoreModule.collection(
         db,
         "books",
@@ -252,9 +267,15 @@ async function createFirebaseContext() {
         firestoreModule.orderBy("spentAt", "desc")
       );
 
-      return firestoreModule.onSnapshot(expensesQuery, (snapshot) => {
-        callback(snapshot.docs.map(normalizeExpense));
-      });
+      return firestoreModule.onSnapshot(
+        expensesQuery,
+        (snapshot) => {
+          callback(snapshot.docs.map(normalizeExpense));
+        },
+        (error) => {
+          onError?.(new Error(getReadableFirestoreError(error)));
+        }
+      );
     },
     async saveExpense(expense, user, member) {
       const docRef = expense.id

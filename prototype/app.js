@@ -85,6 +85,7 @@ const state = {
   cloudAuthUser: null,
   cloudUnsubscribe: null,
   cloudAuthResolved: false,
+  cloudSyncStatus: "idle",
   ledgerMonth: getCurrentMonthKey(new Date().toISOString()),
   ledgerMemberFilter: "all",
   ledgerCategoryFilter: "all",
@@ -151,11 +152,13 @@ if (state.mode === "demo") {
   state.currentProfile = getMemberByKey(state.currentUser);
   state.expenses = loadLocalExpenses();
   state.cloudAuthResolved = true;
+  state.cloudSyncStatus = "ready";
 } else {
   const cachedCloudMember = loadCloudMemberCache();
   state.currentUser = cachedCloudMember?.key ?? null;
   state.currentProfile = cachedCloudMember;
   state.expenses = loadCloudExpensesCache();
+  state.cloudSyncStatus = "idle";
 }
 
 void bootstrap();
@@ -244,10 +247,14 @@ function bindEvents() {
     try {
       if (action === "sign-up") {
         await state.cloudService.signUp(email, password);
-        showCloudAuthFeedback("注册成功，正在进入共享账本。", false);
+        state.cloudSyncStatus = "authenticating";
+        syncLoginState();
+        showCloudAuthFeedback("账号已创建，正在确认成员身份并连接共享账本。", false);
       } else {
         await state.cloudService.signIn(email, password);
-        showCloudAuthFeedback("登录成功，正在同步账本。", false);
+        state.cloudSyncStatus = "authenticating";
+        syncLoginState();
+        showCloudAuthFeedback("登录成功，正在确认成员身份并连接共享账本。", false);
       }
     } catch (error) {
       showCloudAuthFeedback(getReadableAuthError(error), true);
@@ -388,7 +395,7 @@ function bindEvents() {
 }
 
 function attachCloudAuthWatcher() {
-  state.cloudService.watchAuth(({ user, member, error }) => {
+  state.cloudService.watchAuth(({ status, user, member, error }) => {
     state.cloudAuthResolved = true;
 
     if (error) {
@@ -397,6 +404,7 @@ function attachCloudAuthWatcher() {
         state.cloudUnsubscribe = null;
       }
       state.mode = state.cloudReady ? "cloud" : "demo";
+      state.cloudSyncStatus = "error";
       state.currentUser = null;
       state.currentProfile = null;
       state.cloudAuthUser = null;
@@ -408,13 +416,14 @@ function attachCloudAuthWatcher() {
       return;
     }
 
-    if (!user || !member) {
+    if (status === "signed-out" || !user) {
       if (state.cloudUnsubscribe) {
         state.cloudUnsubscribe();
         state.cloudUnsubscribe = null;
       }
 
       if (state.mode === "cloud") {
+        state.cloudSyncStatus = "idle";
         state.currentUser = null;
         state.currentProfile = null;
         state.cloudAuthUser = null;
@@ -426,14 +435,42 @@ function attachCloudAuthWatcher() {
       return;
     }
 
+    if (status === "resolving-member") {
+      state.mode = "cloud";
+      state.cloudSyncStatus = "authenticating";
+      state.cloudAuthUser = null;
+      showCloudAuthFeedback("正在确认你是不是这本共享账本的成员。", false);
+      syncLoginState();
+      return;
+    }
+
+    if (status === "syncing-member") {
+      state.mode = "cloud";
+      state.cloudSyncStatus = "binding";
+      state.currentUser = member?.key ?? null;
+      state.currentProfile = member ?? null;
+      state.cloudAuthUser = null;
+      renderCurrentUser();
+      renderApp();
+      syncLoginState();
+      showCloudAuthFeedback("正在完成成员绑定并接入共享账本。", false);
+      return;
+    }
+
+    if (!member) {
+      return;
+    }
+
     state.mode = "cloud";
+    state.cloudSyncStatus = "subscribing";
     state.currentUser = member.key;
     state.currentProfile = member;
     state.cloudAuthUser = user;
     persistAppMode();
     persistCloudMemberCache(member);
-    showCloudAuthFeedback("云同步已连接。", false);
     renderCurrentUser();
+    renderApp();
+    showCloudAuthFeedback("成员已确认，正在同步共享账本。", false);
     subscribeCloudExpenses();
     syncLoginState();
   });
@@ -446,11 +483,28 @@ function subscribeCloudExpenses() {
     state.cloudUnsubscribe();
   }
 
-  state.cloudUnsubscribe = state.cloudService.watchExpenses((expenses) => {
-    state.expenses = expenses.sort(sortBySpentAtDesc);
-    persistCloudExpensesCache();
-    renderApp();
-  });
+  const wasReady = state.cloudSyncStatus === "ready";
+  state.cloudSyncStatus = "subscribing";
+
+  state.cloudUnsubscribe = state.cloudService.watchExpenses(
+    (expenses) => {
+      state.expenses = expenses.sort(sortBySpentAtDesc);
+      state.cloudSyncStatus = "ready";
+      persistCloudExpensesCache();
+      renderApp();
+      syncLoginState();
+      if (!wasReady) {
+        showCloudAuthFeedback("云同步已连接。", false);
+      }
+    },
+    (error) => {
+      state.cloudUnsubscribe = null;
+      state.cloudSyncStatus = "error";
+      renderApp();
+      syncLoginState();
+      showCloudAuthFeedback(`同步账本失败：${error.message}`, true);
+    }
+  );
 }
 
 function startDemoMode(memberKey) {
@@ -459,6 +513,7 @@ function startDemoMode(memberKey) {
   state.currentProfile = getMemberByKey(memberKey);
   state.cloudAuthUser = null;
   state.cloudAuthResolved = true;
+  state.cloudSyncStatus = "ready";
   state.expenses = loadLocalExpenses();
   exitEditMode();
   persistSession();
@@ -536,9 +591,14 @@ function renderCurrentUser() {
 }
 
 function syncLoginState() {
-  const shouldHideLogin = Boolean(state.currentUser);
+  const shouldHideLogin =
+    state.mode === "demo"
+      ? Boolean(state.currentUser)
+      : Boolean(state.currentUser) && state.cloudSyncStatus === "ready";
   loginScreen.classList.toggle("visible", !shouldHideLogin);
-  loginTitle.textContent = state.cloudReady ? "登录共享账本" : "正式版登录";
+  loginTitle.textContent = state.cloudReady
+    ? getCloudLoginTitle()
+    : "正式版登录";
 }
 
 function renderCategoryGrid() {
@@ -1459,6 +1519,19 @@ function getReadableAuthError(error) {
   };
 
   return messages[code] || error?.message || "登录失败，请再试一次。";
+}
+
+function getCloudLoginTitle() {
+  const titles = {
+    authenticating: "确认成员身份中",
+    binding: "加入共享账本中",
+    subscribing: "同步共享账本中",
+    error: "共享账本连接失败",
+    ready: "登录共享账本",
+    idle: "登录共享账本",
+  };
+
+  return titles[state.cloudSyncStatus] || "登录共享账本";
 }
 
 function escapeHtml(value) {
