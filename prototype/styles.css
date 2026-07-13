@@ -221,14 +221,17 @@ button {
 }
 
 .cloud-status-banner {
+  display: flex;
+  align-items: center;
   margin: 0 0 12px;
   padding: 9px 12px;
+  min-height: 34px;
   border: 1px solid rgba(37, 99, 255, 0.12);
   border-radius: 12px;
   background: rgba(237, 243, 255, 0.72);
   color: rgba(28, 78, 216, 0.9);
   font-size: 12px;
-  line-height: 1.2;
+  line-height: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -253,6 +256,7 @@ button {
   margin: 0;
   padding-top: 0;
   padding-bottom: 0;
+  min-height: 0;
   border-color: transparent;
   box-shadow: none;
   pointer-events: none;
@@ -271,7 +275,7 @@ button {
 .topbar-ledger-identity {
   display: none;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
 
 .app-shell[data-active-tab="ledger"] .topbar-ledger-identity {
@@ -287,42 +291,24 @@ button {
 .session-pill {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 6px 10px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(8px);
-  color: var(--muted);
-  font-size: 12px;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(107, 114, 128, 0.88);
+  font-size: 13px;
 }
 
 .session-pill.member-dou {
-  border-color: rgba(37, 99, 235, 0.14);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 248, 255, 0.9));
+  background: transparent;
 }
 
 .session-pill.member-bao {
-  border-color: rgba(219, 39, 119, 0.12);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 245, 249, 0.88));
+  background: transparent;
 }
 
 .identity-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: rgba(148, 163, 184, 0.8);
-  flex: 0 0 auto;
-}
-
-.session-pill.member-dou .identity-dot {
-  background: rgba(37, 99, 235, 0.78);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-
-.session-pill.member-bao .identity-dot {
-  background: rgba(219, 39, 119, 0.58);
-  box-shadow: 0 0 0 3px rgba(219, 39, 119, 0.08);
+  display: none;
 }
 
 .current-user-label.member-dou {
@@ -337,9 +323,12 @@ button {
   border: 0;
   padding: 0;
   background: transparent;
-  color: rgba(37, 99, 235, 0.72);
-  font-size: 12px;
+  color: rgba(107, 114, 128, 0.72);
+  font-size: 11px;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .text-button.member-dou {
@@ -371,7 +360,15 @@ button {
 }
 
 .topbar-ledger-identity .session-pill {
-  gap: 6px;
+  gap: 4px;
+  min-height: 24px;
+}
+
+.topbar-ledger-identity .current-user-label,
+.topbar-ledger-identity .text-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
 }
 
 .summary-grid {

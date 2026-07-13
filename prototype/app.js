@@ -598,7 +598,7 @@ function renderCurrentUser() {
   appShell.className = `app-shell ${accentClass}`.trim();
   currentUserLabel.className = `current-user-label ${accentClass}`;
   switchUserButton.className = `text-button ${accentClass}`;
-  switchUserButton.textContent = state.currentProfile ? "切换" : "登录";
+  switchUserButton.textContent = state.currentProfile ? "▾" : "登录";
   switchUserButton.setAttribute(
     "aria-label",
     state.currentProfile ? `切换当前记账人，当前为${state.currentProfile.name}` : "登录共享账本"
